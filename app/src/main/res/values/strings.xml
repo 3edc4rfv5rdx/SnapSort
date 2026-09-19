@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SnapSort</string>
+    <string name="pick_folder">Choose folder</string>
+    <string name="pick_folder_hint">Pick the folder your photos are in. SnapSort goes through every photo under it.</string>
+    <string name="folder_unavailable">Can\'t open that folder anymore</string>
+    <string name="more_options">More options</string>
+    <string name="trash">Trash</string>
+    <string name="settings">Settings</string>
+    <string name="about">About</string>
+    <string name="scanning">Looking for photos</string>
+    <string name="scan_failed">Could not scan the folder</string>
+    <string name="no_photos">No photos found in this folder</string>
+    <string name="all_done">That was every photo</string>
+    <string name="keep">Keep</string>
+    <string name="to_trash">To trash</string>
+    <string name="undo">Undo</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete_failed">Could not delete</string>
+    <string name="trash_empty_state">The trash is empty</string>
+    <string name="restore">Restore</string>
+    <string name="restored">Restored</string>
+    <string name="restore_exists">Something with that name is already in the original place</string>
+    <string name="restore_failed">Could not restore</string>
+    <string name="delete_forever">Delete forever</string>
+    <string name="empty_trash">Empty trash</string>
+    <string name="empty_trash_confirm">Everything in the trash will be deleted for good</string>
+    <string name="setting_theme">Theme</string>
+    <string name="setting_accent">Color</string>
+    <string name="setting_language">Language</string>
+    <string name="setting_update_check">Check for updates at launch</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="language_system">System</string>
+</resources>
