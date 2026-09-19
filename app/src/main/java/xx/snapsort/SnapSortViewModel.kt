@@ -35,6 +35,9 @@ private const val PROGRESS_POLL_MS = 200L
 
 class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
+    var hasStorageAccess by mutableStateOf(false)
+        private set
+
     var root by mutableStateOf<DocumentFile?>(null)
         private set
     var images by mutableStateOf<List<ImageEntry>>(emptyList())
@@ -91,6 +94,18 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Re-checked on every resume, since granting it happens in the system
+     * Settings screen, not a dialog this activity gets a callback from.
+     * Reopens the last folder the moment access turns from missing to
+     * granted, so coming back from Settings does not need a second tap.
+     */
+    fun refreshStorageAccess() {
+        val had = hasStorageAccess
+        hasStorageAccess = hasAllFilesAccess()
+        if (hasStorageAccess && !had) start()
+    }
+
     /** Reopens the folder picked on a previous launch, if the grant is still good. */
     fun start() {
         val context = getApplication<Application>()
@@ -136,6 +151,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         history.clear()
         canUndo = false
         scanJob = viewModelScope.launch {
+            val context = getApplication<Application>()
             val progress = ImageScanner.Progress()
             val ticker = launch {
                 while (isActive) {
@@ -145,9 +161,9 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             }
             try {
                 val found = withContext(Dispatchers.IO) {
-                    ImageScanner.scan(r, progress) { ensureActive() }
+                    ImageScanner.scan(context, r, progress) { ensureActive() }
                 }
-                images = found.sortedWith(compareBy({ it.relativePath }, { it.file.name.orEmpty() }))
+                images = found.sortedWith(compareBy({ it.relativePath }, { it.name }))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

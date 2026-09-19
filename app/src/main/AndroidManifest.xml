@@ -1,11 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- The in-app updater: it fetches the release manifest and hands the
          downloaded APK to the system installer. The stub in dev.updater does
          neither yet; kept so a real module drops in without a manifest change. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Full filesystem access instead of SAF/DocumentsProvider: reading and
+         moving hundreds of files through a content provider one call at a
+         time turned out to be unreliable on at least one real device — slow,
+         inconsistent listings, calls that never returned. Plain java.io.File
+         does not have that failure mode. The folder picker (ACTION_OPEN_
+         DOCUMENT_TREE) is still used for its UI; its result is converted to a
+         path once granted, see StorageAccess.kt. -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
 
     <application
         android:allowBackup="false"

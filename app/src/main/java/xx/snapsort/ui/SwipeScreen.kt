@@ -22,9 +22,11 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
@@ -53,6 +55,7 @@ import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import xx.snapsort.R
 import xx.snapsort.SnapSortViewModel
 
@@ -65,6 +68,7 @@ import xx.snapsort.SnapSortViewModel
 fun SwipeScreen(
     vm: SnapSortViewModel,
     onPickFolder: () -> Unit,
+    onGrantAccess: () -> Unit,
     onAbout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -73,6 +77,15 @@ fun SwipeScreen(
 
     Box(modifier.fillMaxSize()) {
         when {
+            !vm.hasStorageAccess -> EmptyState(
+                icon = Icons.Filled.FolderOpen,
+                title = stringResource(R.string.need_storage_access),
+                message = stringResource(R.string.need_storage_access_hint),
+                action = {
+                    Button(onClick = onGrantAccess) { Text(stringResource(R.string.grant_access)) }
+                },
+            )
+
             !vm.hasFolder -> EmptyState(
                 icon = Icons.Filled.FolderOpen,
                 title = stringResource(R.string.pick_folder),
@@ -254,40 +267,57 @@ private fun BottomBar(canUndo: Boolean, busy: Boolean, onTrash: () -> Unit, onKe
                 containerColor = MaterialTheme.colorScheme.errorContainer,
                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
             ),
-        ) { Icon(Icons.Filled.Delete, stringResource(R.string.to_trash)) }
+        ) { Icon(Icons.Filled.ThumbDown, stringResource(R.string.to_trash)) }
 
         FilledTonalIconButton(
             onClick = onUndo,
             enabled = canUndo && !busy,
             modifier = Modifier.size(BOTTOM_BUTTON),
-        ) { Icon(Icons.Filled.Undo, stringResource(R.string.undo)) }
+        ) { Icon(Icons.AutoMirrored.Filled.Undo, stringResource(R.string.undo)) }
 
         FilledIconButton(
             onClick = onKeep,
             enabled = !busy,
             modifier = Modifier.size(BOTTOM_BUTTON),
-        ) { Icon(Icons.Filled.Check, stringResource(R.string.keep)) }
+        ) { Icon(Icons.Filled.ThumbUp, stringResource(R.string.keep)) }
     }
 }
 
-/** A photo loaded from its content Uri, downsampled to roughly the space it is shown in. */
+private const val PHOTO_LOAD_TIMEOUT_MS = 3_000L
+
+private sealed interface PhotoState {
+    data object Loading : PhotoState
+    data class Loaded(val bitmap: Bitmap) : PhotoState
+    data object Failed : PhotoState
+}
+
+/**
+ * A photo loaded from its content Uri, downsampled to roughly the space it
+ * is shown in. Some SAF providers turn unreliable under load and a stream
+ * open can hang indefinitely rather than fail, so this is bounded by
+ * [PHOTO_LOAD_TIMEOUT_MS] rather than waiting forever — the keep/trash
+ * buttons work either way, so a photo that never loads can still be skipped.
+ */
 @Composable
 private fun PhotoView(uri: Uri, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val bitmapState = produceState<Bitmap?>(initialValue = null, key1 = uri) {
-        value = withContext(Dispatchers.IO) { decodeSampled(context.contentResolver, uri, 2048) }
+    val state = produceState<PhotoState>(initialValue = PhotoState.Loading, key1 = uri) {
+        value = PhotoState.Loading
+        val bitmap = withContext(Dispatchers.IO) {
+            withTimeoutOrNull(PHOTO_LOAD_TIMEOUT_MS) { decodeSampled(context.contentResolver, uri, 2048) }
+        }
+        value = if (bitmap != null) PhotoState.Loaded(bitmap) else PhotoState.Failed
     }
     Box(modifier, contentAlignment = Alignment.Center) {
-        val bitmap = bitmapState.value
-        if (bitmap == null) {
-            CircularProgressIndicator()
-        } else {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
+        when (val s = state.value) {
+            PhotoState.Loading -> CircularProgressIndicator()
+            is PhotoState.Loaded -> Image(
+                bitmap = s.bitmap.asImageBitmap(),
                 contentDescription = null,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
+            PhotoState.Failed -> Text(stringResource(R.string.photo_load_failed))
         }
     }
 }

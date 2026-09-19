@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.drawable.toDrawable
@@ -39,6 +40,12 @@ class MainActivity : ComponentActivity() {
         if (uri != null) viewModel.openFolder(uri)
     }
 
+    // The result code from this one is meaningless: the Settings screen for
+    // "All files access" does not report back whether the switch was
+    // flipped, only that the user left it. onResume is what actually
+    // notices the change.
+    private val requestAllFilesAccess = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
+
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(localizedContext(newBase))
     }
@@ -50,7 +57,6 @@ class MainActivity : ComponentActivity() {
         // before it downloads anything.
         Updater.checkOnStart(this, UPDATER_CONFIG)
         applyWindowTheme()
-        viewModel.start()
 
         setContent {
             val themeMode by AppSettings.themeMode.collectAsState()
@@ -64,11 +70,17 @@ class MainActivity : ComponentActivity() {
                     SwipeScreen(
                         vm = viewModel,
                         onPickFolder = { pickFolder.launch(null) },
+                        onGrantAccess = { requestAllFilesAccess.launch(allFilesAccessIntent(this)) },
                         onAbout = ::showAbout,
                     )
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.refreshStorageAccess()
     }
 
     /**
