@@ -57,7 +57,7 @@ fun TrashScreen(
     }
     if (entries.isEmpty()) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(stringResource(R.string.trash_empty_state), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.trash_empty_state), color = MaterialTheme.colorScheme.onSurface)
         }
         return
     }
@@ -110,7 +110,7 @@ fun TrashScreen(
                         Text(
                             text = entry.originalPath,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )

@@ -316,7 +316,7 @@ private fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(icon, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(icon, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(16.dp))
         Text(title, style = MaterialTheme.typography.titleMedium)
         if (message != null) {
@@ -324,7 +324,7 @@ private fun EmptyState(
             Text(
                 message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
         if (action != null) {
