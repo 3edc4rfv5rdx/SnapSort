@@ -33,12 +33,17 @@ object Trash {
 
     enum class RestoreResult { OK, TARGET_EXISTS, FAILED }
 
-    /** Documents/SnapSort/.Trash under [root], created if it is not there yet. */
+    /** Documents/SnapSort/.Trash under [root], created if it is not there yet.
+     * Only for the one caller that needs somewhere to put a photo — reading
+     * goes through [existingDir], so looking into a trash cannot conjure one. */
     fun dirFor(root: File): File {
         val dir = File(root, DIR_PATH)
         if (!dir.isDirectory) dir.mkdirs()
         return dir
     }
+
+    /** The trash as it stands, or null when this root has never had one. */
+    private fun existingDir(root: File): File? = File(root, DIR_PATH).takeIf { it.isDirectory }
 
     /** Moves [entry] into the trash of [root]. Returns the new entry's id, or null on failure. */
     fun moveToTrash(entry: ImageEntry, root: File): String? {
@@ -66,7 +71,7 @@ object Trash {
 
     /** What the trash holds, newest first. A slot with no readable record or item is left out. */
     fun list(root: File): List<Entry> {
-        val trash = dirFor(root)
+        val trash = existingDir(root) ?: return emptyList()
         return trash.listFiles { f -> f.isDirectory }.orEmpty()
             .mapNotNull { slot -> readEntry(trash, slot) }
             .sortedByDescending { it.deletedAt }
@@ -74,7 +79,7 @@ object Trash {
 
     /** One trash entry by id, or null if its slot or record is gone. */
     fun get(root: File, id: String): Entry? {
-        val trash = dirFor(root)
+        val trash = existingDir(root) ?: return null
         val slot = File(trash, id).takeIf { it.isDirectory } ?: return null
         return readEntry(trash, slot)
     }
@@ -111,16 +116,14 @@ object Trash {
         return ok
     }
 
-    /** Deletes the whole trash folder, stray files included. */
-    fun empty(root: File): Boolean = dirFor(root).deleteRecursively()
+    /** Deletes the whole trash folder, stray files included. Nothing to empty counts as done. */
+    fun empty(root: File): Boolean = existingDir(root)?.deleteRecursively() ?: true
 
     /**
-     * Deletes everything trashed more than [MAX_AGE_MS] ago. Checks the folder
-     * itself rather than going through [dirFor], so housekeeping on a root that
-     * has never had a trash does not create one.
+     * Deletes everything trashed more than [MAX_AGE_MS] ago. A root that has
+     * never had a trash lists as empty, so housekeeping never creates one.
      */
     fun purgeExpired(root: File, now: Long = System.currentTimeMillis()) {
-        if (!File(root, DIR_PATH).isDirectory) return
         for (entry in list(root)) {
             if (now - entry.deletedAt > MAX_AGE_MS) purge(root, entry)
         }
