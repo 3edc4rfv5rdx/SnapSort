@@ -131,6 +131,11 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         AppSettings.setFolderPath(context, dir.path)
+        // The saved position belongs to the folder it was saved for. Without
+        // this, a pick that is never browsed leaves the old folder's index in
+        // place, and the next launch restores it against the new folder —
+        // landing on its last photo instead of its first.
+        AppSettings.setLastIndex(context, 0)
         loadFolder(dir, restorePosition = false)
     }
 

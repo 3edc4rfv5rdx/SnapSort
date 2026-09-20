@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- E: Picking a new folder no longer reopens it at its last photo, from the previous folder's saved position
 - E: Opening the trash before a folder is picked no longer leaves a screen that loads forever
 - E: Changing the language no longer closes the Settings screen
 - E: Pinch-to-zoom now works on the first try instead of needing a second attempt — the swipe detector was swallowing the pinch
