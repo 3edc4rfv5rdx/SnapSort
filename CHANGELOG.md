@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- I: Dropped the androidx.documentfile dependency, unused since file access moved off SAF
 - F: A photo opened from the trash now turns with the phone, the same way the main screen does
 - E: A zoomed photo can no longer be dragged off the screen and left there
 - E: Photos thrown away under a previously picked folder no longer come back into the queue when a folder above it is picked; hidden folders such as .thumbnails are skipped too
