@@ -3,13 +3,17 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- N: Explicit back/forward buttons next to trash, plus a current/total counter, so paging works without swiping too
+- F: "Change folder" in the ⋮ menu switches folders without waiting for a fresh pick every launch — the last folder is remembered again
+- F: Undo now lives in the ⋮ menu instead of its own button; trash/back/forward all work on one single position in the list, so paging back to an already-trashed spot can't show a broken "could not load" any more
+- F: Trash's icon is a plain bin instead of a thumbs-down, in black instead of white
+- E: A landscape photo turning with the phone's tilt now actually fills the screen instead of shrinking into a square in the middle
 - N: The photo view now zooms with a pinch and pans while zoomed
-- N: A one-finger swipe looks through already-seen photos without moving the keep/trash cursor
 - N: A landscape photo turns with the phone's tilt to fill the screen, even though the app itself stays locked portrait
 - N: The current photo's file name and folder show as small labels over and under it
 - E: A photo taken in portrait no longer shows rotated on its side
 - F: The trash and settings screens now have a visible back button
-- F: The folder-pick button is bigger and filled with the accent colour; the undo button now has its own colour instead of a muted tone
+- F: The folder-pick button is bigger and filled with the accent colour
 - F: The launcher icon's strike-through is smaller and shallower, from the other corner
 - I: File access is now entirely off SAF, onto plain file paths under "All files access"
 - I: Added the "All files access" permission screen, ahead of moving file access off SAF entirely

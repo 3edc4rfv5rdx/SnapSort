@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -39,6 +40,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
@@ -84,6 +86,12 @@ val WindowLight = Color(0xFFF1F2F4)
 val WindowDark = Color(0xFF121212)
 private val TonalButtonDark = Color(0xFF5A5A5A)
 
+// Material3's baseline `error` is a soft, low-chroma rose in the dark scheme
+// (meant for text on a dark surface, not a button fill) — nowhere near as
+// loud as the trash button needs to read. Same red as the accent palette's
+// own "red" choice, so it stays a proper red in both themes.
+private val ErrorRed = Color(0xFFE53935)
+
 private val LightColors = lightColorScheme(
     background = WindowLight,
     surface = WindowLight,
@@ -92,6 +100,8 @@ private val LightColors = lightColorScheme(
     surfaceContainer = Color.White,
     surfaceContainerHigh = Color.White,
     surfaceContainerHighest = Color.White,
+    error = ErrorRed,
+    onError = Color.White,
 )
 
 private val DarkColors = darkColorScheme(
@@ -105,6 +115,8 @@ private val DarkColors = darkColorScheme(
     // Tonal buttons must read as buttons against the dark window.
     secondaryContainer = TonalButtonDark,
     onSecondaryContainer = Color.White,
+    error = ErrorRed,
+    onError = Color.White,
 )
 
 /**
@@ -163,11 +175,28 @@ fun noticeText(context: Context, notice: Notice): String {
 /** An icon button smaller than Material's 48dp, for rows that must stay low. */
 val COMPACT_BUTTON = 40.dp
 
-/** The ⋮ button that opens an [AppMenu]. */
+/**
+ * The ⋮ button that opens an [AppMenu]. [overlay] gives it a round dark
+ * backdrop for when it sits over a photo of unknown colour, rather than a
+ * plain surface it would otherwise disappear against.
+ */
 @Composable
-fun MoreButton(onClick: () -> Unit, enabled: Boolean = true) {
-    IconButton(onClick = onClick, enabled = enabled) {
-        Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options))
+fun MoreButton(onClick: () -> Unit, enabled: Boolean = true, overlay: Boolean = false) {
+    if (overlay) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            colors = IconButtonDefaults.iconButtonColors(
+                containerColor = Color.Black.copy(alpha = 0.55f),
+                contentColor = Color.White,
+            ),
+        ) {
+            Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options))
+        }
+    } else {
+        IconButton(onClick = onClick, enabled = enabled) {
+            Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options))
+        }
     }
 }
 
@@ -328,6 +357,14 @@ fun PathPill(path: String, modifier: Modifier = Modifier) {
     }
 }
 
+/** Where the current photo sits in the queue, one-based. */
+@Composable
+fun CountPill(current: Int, total: Int, modifier: Modifier = Modifier) {
+    InfoPill(modifier) {
+        Text("$current / $total", maxLines = 1, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
 // ---------- Photo viewer ----------
 
 private const val PHOTO_LOAD_TIMEOUT_MS = 3_000L
@@ -406,7 +443,11 @@ fun PhotoView(
         contentAlignment = Alignment.Center,
     ) {
         val turned = rotation == 90 || rotation == 270
-        val frame = if (turned) Modifier.size(width = maxHeight, height = maxWidth) else Modifier.fillMaxSize()
+        val frame = if (turned) {
+            Modifier.requiredSize(width = maxHeight, height = maxWidth)
+        } else {
+            Modifier.fillMaxSize()
+        }
         Box(frame, contentAlignment = Alignment.Center) {
             when (val s = state.value) {
                 PhotoState.Loading -> CircularProgressIndicator()

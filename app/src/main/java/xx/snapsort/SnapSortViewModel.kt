@@ -22,13 +22,11 @@ import java.io.File
 /** A line for the snackbar: a string resource, and an optional raw detail such as an exception message. */
 class Notice(@param:StringRes val text: Int, val detail: String? = null)
 
-/** One step back for [SnapSortViewModel.undo]. */
-private sealed interface HistoryStep {
-    /** Keeping just moves on; undoing it only steps the index back. */
-    data object Kept : HistoryStep
-    /** Trashing must also be undone on disk, by the id [Trash.moveToTrash] returned. */
-    data class Trashed(val trashId: String) : HistoryStep
-}
+/**
+ * One photo sent to the trash this session, and where it stood in [SnapSortViewModel.images]
+ * before it was spliced out — [SnapSortViewModel.undo] needs both to put it back in the same spot.
+ */
+private data class TrashedSlot(val index: Int, val entry: ImageEntry, val trashId: String)
 
 private const val PROGRESS_POLL_MS = 200L
 
@@ -42,14 +40,6 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     var images by mutableStateOf<List<ImageEntry>>(emptyList())
         private set
     var index by mutableIntStateOf(0)
-        private set
-
-    /**
-     * Where a paging swipe has looked, independent of [index]: a look does not
-     * keep, trash or touch history. Snaps back to [index] on every decision so
-     * the buttons are never left pointed at a photo that is not on screen.
-     */
-    var viewIndex by mutableIntStateOf(0)
         private set
 
     var scanning by mutableStateOf(false)
@@ -69,34 +59,14 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     var trashEntries by mutableStateOf<List<Trash.Entry>?>(null)
         private set
 
-    private val history = ArrayDeque<HistoryStep>()
-    var canUndo by mutableStateOf(false)
-        private set
+    /** Every trash this session, most recent last; only [undo] pops it. */
+    private val trashedStack = ArrayDeque<TrashedSlot>()
+    val canUndo: Boolean get() = trashedStack.isNotEmpty()
 
     private var scanJob: Job? = null
 
     val current: ImageEntry? get() = images.getOrNull(index)
-    val viewed: ImageEntry? get() = images.getOrNull(viewIndex)
-    val browsingAway: Boolean get() = viewIndex != index
     val hasFolder: Boolean get() = root != null
-    val finished: Boolean get() = root != null && !scanning && images.isNotEmpty() && index >= images.size
-
-    private fun moveTo(newIndex: Int) {
-        index = newIndex
-        viewIndex = newIndex
-    }
-
-    /** One step back in [viewIndex] only, to look at a photo already passed. */
-    fun browsePrev() {
-        if (images.isEmpty()) return
-        viewIndex = (viewIndex - 1).coerceAtLeast(0)
-    }
-
-    /** One step forward in [viewIndex] only, back towards — or past — [index]. */
-    fun browseNext() {
-        if (images.isEmpty()) return
-        viewIndex = (viewIndex + 1).coerceAtMost(images.lastIndex)
-    }
 
     /**
      * Runs one file operation at a time, never letting it crash the app: a SAF
@@ -139,7 +109,8 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         loadFolder(File(path))
     }
 
-    /** Called with the tree the user just picked. */
+    /** Called with the tree the user just picked — either the first pick, or a
+     * later "change folder" from the menu. */
     fun openFolder(uri: Uri) {
         val context = getApplication<Application>()
         val dir = uri.treeToFile()
@@ -166,9 +137,8 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         scanning = true
         scannedCount = 0
         images = emptyList()
-        moveTo(0)
-        history.clear()
-        canUndo = false
+        index = 0
+        trashedStack.clear()
         scanJob = viewModelScope.launch {
             val progress = ImageScanner.Progress()
             val ticker = launch {
@@ -193,55 +163,51 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Leaves the current photo where it is and moves on. */
-    fun keep() {
-        if (current == null || busy || browsingAway) return
-        history.addLast(HistoryStep.Kept)
-        canUndo = true
-        moveTo(index + 1)
+    /** One photo forward — pure navigation, nothing on disk changes. */
+    fun next() {
+        if (images.isEmpty()) return
+        index = (index + 1).coerceAtMost(images.lastIndex)
     }
 
-    /** Moves the current photo to the trash and moves on. */
+    /** One photo back — pure navigation, nothing on disk changes. */
+    fun previous() {
+        if (images.isEmpty()) return
+        index = (index - 1).coerceAtLeast(0)
+    }
+
+    /** Moves the current photo to the trash and drops it out of the queue. */
     fun trash() {
-        if (browsingAway) return
         val entry = current ?: return
         val r = root ?: return
+        val at = index
         runBusy(onFailure = Notice(R.string.delete_failed)) {
             val trashId = withContext(Dispatchers.IO) { Trash.moveToTrash(entry, r) }
             if (trashId != null) {
-                history.addLast(HistoryStep.Trashed(trashId))
-                canUndo = true
-                moveTo(index + 1)
+                images = images.toMutableList().also { it.removeAt(at) }
+                trashedStack.addLast(TrashedSlot(at, entry, trashId))
+                index = at.coerceAtMost((images.size - 1).coerceAtLeast(0))
             } else {
                 notice = Notice(R.string.delete_failed)
             }
         }
     }
 
-    /** Steps back one photo, restoring it out of the trash first if that is what sent it there. */
+    /** Restores the most recently trashed photo and puts it back in the queue at the spot it left. */
     fun undo() {
-        if (busy || browsingAway) return
-        val step = history.removeLastOrNull() ?: return
-        canUndo = history.isNotEmpty()
-        when (step) {
-            HistoryStep.Kept -> moveTo(index - 1)
-            is HistoryStep.Trashed -> {
-                val r = root
-                if (r == null) {
-                    moveTo(index - 1)
-                    return
-                }
-                runBusy(onFailure = Notice(R.string.restore_failed)) {
-                    val ok = withContext(Dispatchers.IO) {
-                        val entry = Trash.get(r, step.trashId) ?: return@withContext false
-                        Trash.restore(r, entry) == Trash.RestoreResult.OK
-                    }
-                    if (ok) {
-                        moveTo(index - 1)
-                    } else {
-                        notice = Notice(R.string.restore_failed)
-                    }
-                }
+        if (busy) return
+        val slot = trashedStack.removeLastOrNull() ?: return
+        val r = root ?: return
+        runBusy(onFailure = Notice(R.string.restore_failed)) {
+            val ok = withContext(Dispatchers.IO) {
+                val entry = Trash.get(r, slot.trashId) ?: return@withContext false
+                Trash.restore(r, entry) == Trash.RestoreResult.OK
+            }
+            if (ok) {
+                images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
+                index = slot.index.coerceIn(0, images.lastIndex)
+            } else {
+                trashedStack.addLast(slot)
+                notice = Notice(R.string.restore_failed)
             }
         }
     }
@@ -270,12 +236,12 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * The trash-screen entry may be the very photo an undo on the swipe
-     * screen would otherwise restore; dropping its history step here keeps
-     * that undo from acting on a slot that already moved or is gone.
+     * The trash-screen entry may be the very photo [undo] on the swipe screen
+     * would otherwise restore; dropping its slot here keeps that undo from
+     * acting on a photo that already moved or is gone.
      */
-    private fun forgetHistoryOf(id: String) {
-        if (history.remove(HistoryStep.Trashed(id))) canUndo = history.isNotEmpty()
+    private fun forgetTrashedSlotOf(id: String) {
+        trashedStack.removeAll { it.trashId == id }
     }
 
     fun restoreFromTrash(entry: Trash.Entry) {
@@ -290,7 +256,11 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 },
             )
             if (result == Trash.RestoreResult.OK) {
-                forgetHistoryOf(entry.id)
+                val slot = trashedStack.firstOrNull { it.trashId == entry.id }
+                forgetTrashedSlotOf(entry.id)
+                if (slot != null) {
+                    images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
+                }
                 reloadTrash()
             }
         }
@@ -301,7 +271,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         runBusy(onFailure = Notice(R.string.delete_failed)) {
             val ok = withContext(Dispatchers.IO) { Trash.purge(r, entry) }
             if (ok) {
-                forgetHistoryOf(entry.id)
+                forgetTrashedSlotOf(entry.id)
             } else {
                 notice = Notice(R.string.delete_failed)
             }
@@ -314,7 +284,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         runBusy(onFailure = Notice(R.string.delete_failed)) {
             val ok = withContext(Dispatchers.IO) { Trash.empty(r) }
             if (ok) {
-                if (history.removeAll { it is HistoryStep.Trashed }) canUndo = history.isNotEmpty()
+                trashedStack.clear()
             } else {
                 notice = Notice(R.string.delete_failed)
             }

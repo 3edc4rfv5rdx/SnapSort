@@ -34,7 +34,10 @@ fun rememberDeviceRotation(): Int {
                 }
             }
         }
-        listener.enable()
+        // Without a working accelerometer (common on an emulator with no
+        // virtual sensors configured) this fires with meaningless values
+        // instead of just not firing — trust it only once it says it can.
+        if (listener.canDetectOrientation()) listener.enable()
         onDispose { listener.disable() }
     }
     return rotation
