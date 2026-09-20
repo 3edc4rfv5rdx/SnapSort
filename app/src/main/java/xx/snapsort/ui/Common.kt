@@ -554,7 +554,18 @@ fun PhotoView(
                             scale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
                             if (scale <= 1f) offset = Offset.Zero
                         }
-                        if (scale > 1f) offset += pan
+                        if (scale > 1f) {
+                            // Only the overhang the zoom created can be panned,
+                            // so the photo cannot be dragged off the screen and
+                            // stranded there. Re-applied on every event, which
+                            // also pulls the photo back as the zoom shrinks.
+                            val limitX = size.width * (scale - 1f) / 2f
+                            val limitY = size.height * (scale - 1f) / 2f
+                            offset = Offset(
+                                (offset.x + pan.x).coerceIn(-limitX, limitX),
+                                (offset.y + pan.y).coerceIn(-limitY, limitY),
+                            )
+                        }
                         event.changes.forEach { if (it.positionChanged()) it.consume() }
                     } else {
                         swipeX += pan.x
