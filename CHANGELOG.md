@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- E: Photos thrown away under a previously picked folder no longer come back into the queue when a folder above it is picked; hidden folders such as .thumbnails are skipped too
 - E: Picking a new folder no longer reopens it at its last photo, from the previous folder's saved position
 - E: Opening the trash before a folder is picked no longer leaves a screen that loads forever
 - E: Changing the language no longer closes the Settings screen
