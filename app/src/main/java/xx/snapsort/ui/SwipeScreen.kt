@@ -90,7 +90,7 @@ fun SwipeScreen(
             }
 
             settingsOpen -> AppScreen(title = stringResource(R.string.settings), onBack = { settingsOpen = false }) {
-                SettingsScreen(onResetPosition = vm::resetPosition, modifier = Modifier.weight(1f))
+                SettingsScreen(modifier = Modifier.weight(1f))
             }
 
             else -> {
@@ -202,6 +202,15 @@ fun SwipeScreen(
                                 )
                             },
                             onClick = { menuOpen = false; vm.openDiskSpace() },
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(R.string.reset_position),
+                                    style = MaterialTheme.typography.titleLarge,
+                                )
+                            },
+                            onClick = { menuOpen = false; vm.resetPosition() },
                         )
                         DropdownMenuItem(
                             text = {

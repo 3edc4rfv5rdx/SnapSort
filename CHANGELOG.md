@@ -4,7 +4,7 @@
 
 ## Unreleased
 - I: Release builds are minified and shrunk again (R8), off since it was slowing down iteration
-- N: Reopening a folder continues from the last-viewed photo, with a Settings toggle to turn that off and a "Reset position" row
+- N: Reopening a folder continues from the last-viewed photo, with a Settings toggle to turn that off and "Reset position" in the ⋮ menu
 - N: The ⋮ menu shows free/total disk space, with a green/red bar and a percentage
 - E: A stray status-bar inset no longer pushes the file name pill away from the buttons above it
 - F: Trash and Settings are now full screens instead of pop-up dialogs, each with a back button

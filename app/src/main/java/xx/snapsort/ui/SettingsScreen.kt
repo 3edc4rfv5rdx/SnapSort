@@ -39,9 +39,9 @@ import xx.snapsort.supportedLanguages
 /** Which editor is open; only one can be at a time. */
 private enum class Editing { NONE, THEME, ACCENT, LANGUAGE }
 
-/** Theme, accent colour, language, the start-up update check, and browse position. */
+/** Theme, accent colour, language, the start-up update check, and whether browse position is remembered. */
 @Composable
-fun SettingsScreen(onResetPosition: () -> Unit, modifier: Modifier = Modifier) {
+fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val activity = LocalActivity.current
     val themeMode by AppSettings.themeMode.collectAsState()
@@ -122,16 +122,6 @@ fun SettingsScreen(onResetPosition: () -> Unit, modifier: Modifier = Modifier) {
                 checked = rememberPosition,
                 onCheckedChange = { AppSettings.setRememberPosition(context, it) },
             )
-        }
-        HorizontalDivider()
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onResetPosition)
-                .padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(stringResource(R.string.reset_position), style = MaterialTheme.typography.titleLarge)
         }
     }
 
