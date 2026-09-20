@@ -1,14 +1,12 @@
 package xx.snapsort
 
 import android.app.Application
-import android.content.Intent
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
@@ -19,6 +17,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /** A line for the snackbar: a string resource, and an optional raw detail such as an exception message. */
 class Notice(@param:StringRes val text: Int, val detail: String? = null)
@@ -38,11 +37,19 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     var hasStorageAccess by mutableStateOf(false)
         private set
 
-    var root by mutableStateOf<DocumentFile?>(null)
+    var root by mutableStateOf<File?>(null)
         private set
     var images by mutableStateOf<List<ImageEntry>>(emptyList())
         private set
     var index by mutableIntStateOf(0)
+        private set
+
+    /**
+     * Where a paging swipe has looked, independent of [index]: a look does not
+     * keep, trash or touch history. Snaps back to [index] on every decision so
+     * the buttons are never left pointed at a photo that is not on screen.
+     */
+    var viewIndex by mutableIntStateOf(0)
         private set
 
     var scanning by mutableStateOf(false)
@@ -69,8 +76,27 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     private var scanJob: Job? = null
 
     val current: ImageEntry? get() = images.getOrNull(index)
+    val viewed: ImageEntry? get() = images.getOrNull(viewIndex)
+    val browsingAway: Boolean get() = viewIndex != index
     val hasFolder: Boolean get() = root != null
     val finished: Boolean get() = root != null && !scanning && images.isNotEmpty() && index >= images.size
+
+    private fun moveTo(newIndex: Int) {
+        index = newIndex
+        viewIndex = newIndex
+    }
+
+    /** One step back in [viewIndex] only, to look at a photo already passed. */
+    fun browsePrev() {
+        if (images.isEmpty()) return
+        viewIndex = (viewIndex - 1).coerceAtLeast(0)
+    }
+
+    /** One step forward in [viewIndex] only, back towards — or past — [index]. */
+    fun browseNext() {
+        if (images.isEmpty()) return
+        viewIndex = (viewIndex + 1).coerceAtMost(images.lastIndex)
+    }
 
     /**
      * Runs one file operation at a time, never letting it crash the app: a SAF
@@ -106,38 +132,31 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         if (hasStorageAccess && !had) start()
     }
 
-    /** Reopens the folder picked on a previous launch, if the grant is still good. */
+    /** Reopens the folder picked on a previous launch, if it is still there. */
     fun start() {
         val context = getApplication<Application>()
-        val uri = AppSettings.folderUri(context) ?: return
-        val granted = context.contentResolver.persistedUriPermissions
-            .any { it.uri == uri && it.isReadPermission }
-        if (!granted) {
-            AppSettings.setFolderUri(context, null)
-            return
-        }
-        loadFolder(uri)
+        val path = AppSettings.folderPath(context) ?: return
+        loadFolder(File(path))
     }
 
     /** Called with the tree the user just picked. */
     fun openFolder(uri: Uri) {
         val context = getApplication<Application>()
-        context.contentResolver.takePersistableUriPermission(
-            uri,
-            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-        )
-        AppSettings.setFolderUri(context, uri)
-        loadFolder(uri)
-    }
-
-    private fun loadFolder(uri: Uri) {
-        val context = getApplication<Application>()
-        val doc = DocumentFile.fromTreeUri(context, uri)
-        if (doc == null || !doc.isDirectory) {
+        val dir = uri.treeToFile()
+        if (dir == null) {
             notice = Notice(R.string.folder_unavailable)
             return
         }
-        root = doc
+        AppSettings.setFolderPath(context, dir.path)
+        loadFolder(dir)
+    }
+
+    private fun loadFolder(dir: File) {
+        if (!dir.isDirectory) {
+            notice = Notice(R.string.folder_unavailable)
+            return
+        }
+        root = dir
         rescan()
     }
 
@@ -147,11 +166,10 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         scanning = true
         scannedCount = 0
         images = emptyList()
-        index = 0
+        moveTo(0)
         history.clear()
         canUndo = false
         scanJob = viewModelScope.launch {
-            val context = getApplication<Application>()
             val progress = ImageScanner.Progress()
             val ticker = launch {
                 while (isActive) {
@@ -161,9 +179,9 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             }
             try {
                 val found = withContext(Dispatchers.IO) {
-                    ImageScanner.scan(context, r, progress) { ensureActive() }
+                    ImageScanner.scan(r, progress) { ensureActive() }
                 }
-                images = found.sortedWith(compareBy({ it.relativePath }, { it.name }))
+                images = found.sortedWith(compareBy({ it.relativePath }, { it.file.name }))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -177,24 +195,23 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Leaves the current photo where it is and moves on. */
     fun keep() {
-        if (current == null || busy) return
+        if (current == null || busy || browsingAway) return
         history.addLast(HistoryStep.Kept)
         canUndo = true
-        index++
+        moveTo(index + 1)
     }
 
     /** Moves the current photo to the trash and moves on. */
     fun trash() {
+        if (browsingAway) return
         val entry = current ?: return
         val r = root ?: return
         runBusy(onFailure = Notice(R.string.delete_failed)) {
-            val trashId = withContext(Dispatchers.IO) {
-                Trash.moveToTrash(getApplication<Application>().contentResolver, entry, r)
-            }
+            val trashId = withContext(Dispatchers.IO) { Trash.moveToTrash(entry, r) }
             if (trashId != null) {
                 history.addLast(HistoryStep.Trashed(trashId))
                 canUndo = true
-                index++
+                moveTo(index + 1)
             } else {
                 notice = Notice(R.string.delete_failed)
             }
@@ -203,25 +220,24 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Steps back one photo, restoring it out of the trash first if that is what sent it there. */
     fun undo() {
-        if (busy) return
+        if (busy || browsingAway) return
         val step = history.removeLastOrNull() ?: return
         canUndo = history.isNotEmpty()
         when (step) {
-            HistoryStep.Kept -> index--
+            HistoryStep.Kept -> moveTo(index - 1)
             is HistoryStep.Trashed -> {
                 val r = root
                 if (r == null) {
-                    index--
+                    moveTo(index - 1)
                     return
                 }
                 runBusy(onFailure = Notice(R.string.restore_failed)) {
-                    val context = getApplication<Application>()
                     val ok = withContext(Dispatchers.IO) {
-                        val entry = Trash.get(context, r, step.trashId) ?: return@withContext false
-                        Trash.restore(context, entry, r) == Trash.RestoreResult.OK
+                        val entry = Trash.get(r, step.trashId) ?: return@withContext false
+                        Trash.restore(r, entry) == Trash.RestoreResult.OK
                     }
                     if (ok) {
-                        index--
+                        moveTo(index - 1)
                     } else {
                         notice = Notice(R.string.restore_failed)
                     }
@@ -249,7 +265,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     private fun reloadTrash() {
         val r = root ?: return
         viewModelScope.launch {
-            trashEntries = withContext(Dispatchers.IO) { Trash.list(getApplication(), r) }
+            trashEntries = withContext(Dispatchers.IO) { Trash.list(r) }
         }
     }
 
@@ -265,8 +281,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     fun restoreFromTrash(entry: Trash.Entry) {
         val r = root ?: return
         runBusy(onFailure = Notice(R.string.restore_failed)) {
-            val context = getApplication<Application>()
-            val result = withContext(Dispatchers.IO) { Trash.restore(context, entry, r) }
+            val result = withContext(Dispatchers.IO) { Trash.restore(r, entry) }
             notice = Notice(
                 when (result) {
                     Trash.RestoreResult.OK -> R.string.restored
@@ -284,8 +299,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     fun purgeFromTrash(entry: Trash.Entry) {
         val r = root ?: return
         runBusy(onFailure = Notice(R.string.delete_failed)) {
-            val context = getApplication<Application>()
-            val ok = withContext(Dispatchers.IO) { Trash.purge(context, entry, r) }
+            val ok = withContext(Dispatchers.IO) { Trash.purge(r, entry) }
             if (ok) {
                 forgetHistoryOf(entry.id)
             } else {

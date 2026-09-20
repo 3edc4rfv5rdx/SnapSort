@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.content.res.XmlResourceParser
-import android.net.Uri
 import android.os.Build
 import android.os.LocaleList
 import androidx.core.content.edit
@@ -30,7 +29,7 @@ object AppSettings {
     private const val KEY_THEME = "theme_mode"
     private const val KEY_ACCENT = "accent_index"
     private const val KEY_LANGUAGE = "language"
-    private const val KEY_FOLDER_URI = "folder_uri"
+    private const val KEY_FOLDER_PATH = "folder_path"
 
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
@@ -56,11 +55,11 @@ object AppSettings {
     }
 
     /** The folder the user picked, kept across launches. Null before a first pick. */
-    fun folderUri(context: Context): Uri? = prefs(context).getString(KEY_FOLDER_URI, null)?.let(Uri::parse)
+    fun folderPath(context: Context): String? = prefs(context).getString(KEY_FOLDER_PATH, null)
 
-    fun setFolderUri(context: Context, uri: Uri?) {
+    fun setFolderPath(context: Context, path: String?) {
         prefs(context).edit {
-            if (uri == null) remove(KEY_FOLDER_URI) else putString(KEY_FOLDER_URI, uri.toString())
+            if (path == null) remove(KEY_FOLDER_PATH) else putString(KEY_FOLDER_PATH, path)
         }
     }
 

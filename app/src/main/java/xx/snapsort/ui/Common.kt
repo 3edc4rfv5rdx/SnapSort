@@ -1,20 +1,29 @@
 package xx.snapsort.ui
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.text.format.Formatter
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -25,25 +34,44 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.exifinterface.media.ExifInterface
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import xx.snapsort.ACCENT_COUNT
 import xx.snapsort.Notice
 import xx.snapsort.R
 import xx.snapsort.ThemeMode
+import java.io.IOException
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -264,4 +292,171 @@ fun AccentSwatch(color: Color, selected: Boolean, onClick: () -> Unit) {
             )
             .clickable(onClick = onClick),
     )
+}
+
+// ---------- Info pills ----------
+
+/** A translucent rounded chip that reads over a photo of any colour, in either theme. */
+@Composable
+private fun InfoPill(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = Color.Black.copy(alpha = 0.55f),
+        contentColor = Color.White,
+    ) {
+        Box(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) { content() }
+    }
+}
+
+/** A photo's file name, meant to sit over the top of the photo. */
+@Composable
+fun NamePill(name: String, modifier: Modifier = Modifier) {
+    InfoPill(modifier.widthIn(max = 220.dp)) {
+        Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+private const val PATH_PILL_MAX_CHARS = 40
+
+/** A photo's folder, truncated from the *start* so the part nearest the file stays visible. */
+@Composable
+fun PathPill(path: String, modifier: Modifier = Modifier) {
+    val shown = if (path.length > PATH_PILL_MAX_CHARS) "…" + path.takeLast(PATH_PILL_MAX_CHARS - 1) else path
+    InfoPill(modifier) {
+        Text(shown, maxLines = 1, overflow = TextOverflow.Clip, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+// ---------- Photo viewer ----------
+
+private const val PHOTO_LOAD_TIMEOUT_MS = 3_000L
+private const val MAX_ZOOM = 5f
+private val SWIPE_THRESHOLD = 80.dp
+
+private sealed interface PhotoState {
+    data object Loading : PhotoState
+    data class Loaded(val bitmap: Bitmap) : PhotoState
+    data object Failed : PhotoState
+}
+
+/**
+ * One photo, decoded off a plain file path and downsampled to roughly the
+ * space [modifier] gives it. Corrected for its own EXIF orientation, then
+ * turned by [rotation] — the device's physical tilt, not the layout's, since
+ * every screen that hosts this stays locked portrait; 90/270 swap the frame
+ * it is measured against so the photo still fills the screen edge to edge
+ * once rotated. Pinch to zoom up to [MAX_ZOOM] and pan while zoomed;
+ * [onSwipeForward]/[onSwipeBackward] fire on a plain one-finger drag while it
+ * is not, so a caller can page to another photo without this composable
+ * knowing what "another photo" means for it — the swipe screen and (in time)
+ * the trash screen both show a photo this same way, so a fix to decoding,
+ * rotation or zoom only has to happen once.
+ */
+@Composable
+fun PhotoView(
+    path: String,
+    rotation: Int = 0,
+    onSwipeForward: () -> Unit = {},
+    onSwipeBackward: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    val state = produceState<PhotoState>(initialValue = PhotoState.Loading, key1 = path) {
+        value = PhotoState.Loading
+        val bitmap = withContext(Dispatchers.IO) {
+            withTimeoutOrNull(PHOTO_LOAD_TIMEOUT_MS) { decodeSampled(path, 2048) }
+        }
+        value = if (bitmap != null) PhotoState.Loaded(bitmap) else PhotoState.Failed
+    }
+    var scale by remember(path) { mutableFloatStateOf(1f) }
+    var offset by remember(path) { mutableStateOf(Offset.Zero) }
+    val zoomed = scale > 1f
+
+    BoxWithConstraints(
+        modifier
+            .pointerInput(path) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    if (zoom != 1f) {
+                        scale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
+                        if (scale <= 1f) offset = Offset.Zero
+                    }
+                    if (scale > 1f) offset += pan
+                }
+            }
+            .then(
+                if (zoomed) {
+                    Modifier
+                } else {
+                    Modifier.pointerInput(path) {
+                        val threshold = SWIPE_THRESHOLD.toPx()
+                        var accumulated = 0f
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
+                                if (accumulated <= -threshold) onSwipeForward()
+                                else if (accumulated >= threshold) onSwipeBackward()
+                                accumulated = 0f
+                            },
+                        ) { change, dragAmount ->
+                            change.consume()
+                            accumulated += dragAmount
+                        }
+                    }
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        val turned = rotation == 90 || rotation == 270
+        val frame = if (turned) Modifier.size(width = maxHeight, height = maxWidth) else Modifier.fillMaxSize()
+        Box(frame, contentAlignment = Alignment.Center) {
+            when (val s = state.value) {
+                PhotoState.Loading -> CircularProgressIndicator()
+                is PhotoState.Loaded -> Image(
+                    bitmap = s.bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            rotationZ = rotation.toFloat()
+                            scaleX = scale
+                            scaleY = scale
+                            translationX = offset.x
+                            translationY = offset.y
+                        },
+                )
+                PhotoState.Failed -> Text(stringResource(R.string.photo_load_failed))
+            }
+        }
+    }
+}
+
+private fun decodeSampled(path: String, maxDimension: Int): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(path, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    var sample = 1
+    while (bounds.outWidth / (sample * 2) >= maxDimension || bounds.outHeight / (sample * 2) >= maxDimension) {
+        sample *= 2
+    }
+    val options = BitmapFactory.Options().apply { inSampleSize = sample }
+    val bitmap = BitmapFactory.decodeFile(path, options) ?: return null
+    return applyExifRotation(bitmap, path)
+}
+
+/** [BitmapFactory] never applies a file's own EXIF orientation; a camera writes a
+ * landscape sensor buffer plus this tag rather than rotating the pixels itself. */
+private fun applyExifRotation(bitmap: Bitmap, path: String): Bitmap {
+    val degrees = try {
+        when (ExifInterface(path).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> 90
+            ExifInterface.ORIENTATION_ROTATE_180 -> 180
+            ExifInterface.ORIENTATION_ROTATE_270 -> 270
+            else -> 0
+        }
+    } catch (e: IOException) {
+        0
+    }
+    if (degrees == 0) return bitmap
+    val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
+    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 }

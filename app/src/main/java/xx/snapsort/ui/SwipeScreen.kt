@@ -1,10 +1,5 @@
 package xx.snapsort.ui
 
-import android.content.ContentResolver
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,17 +16,18 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
@@ -41,23 +37,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import xx.snapsort.R
 import xx.snapsort.SnapSortViewModel
+import xx.snapsort.rememberDeviceRotation
 
 /**
  * The whole app: one photo at a time, kept or trashed with a button tap, with
@@ -109,18 +100,48 @@ fun SwipeScreen(
                 action = null,
             )
 
-            else -> vm.current?.let { entry ->
+            else -> vm.viewed?.let { entry ->
+                val rotation = rememberDeviceRotation()
                 Column(Modifier.fillMaxSize()) {
                     Box(Modifier.weight(1f).fillMaxWidth()) {
-                        PhotoView(entry.file.uri, Modifier.fillMaxSize())
+                        PhotoView(
+                            path = entry.file.path,
+                            rotation = rotation,
+                            onSwipeForward = { if (!vm.busy) vm.browseNext() },
+                            onSwipeBackward = { if (!vm.busy) vm.browsePrev() },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        NamePill(
+                            name = entry.file.name,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .windowInsetsPadding(WindowInsets.systemBars)
+                                .padding(start = 12.dp, top = 12.dp, end = 64.dp),
+                        )
                     }
                     BottomBar(
                         canUndo = vm.canUndo,
-                        busy = vm.busy,
+                        busy = vm.busy || vm.browsingAway,
                         onTrash = vm::trash,
                         onKeep = vm::keep,
                         onUndo = vm::undo,
                     )
+                    if (entry.relativePath.isNotBlank()) {
+                        PathPill(
+                            path = entry.relativePath,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .windowInsetsPadding(WindowInsets.systemBars)
+                                .padding(horizontal = 16.dp, bottom = 8.dp),
+                        )
+                    } else {
+                        Spacer(
+                            Modifier
+                                .fillMaxWidth()
+                                .windowInsetsPadding(WindowInsets.systemBars)
+                                .height(8.dp),
+                        )
+                    }
                 }
             }
         }
@@ -176,7 +197,7 @@ fun SwipeScreen(
     }
 }
 
-/** A dialog that covers the screen, with a title row above whatever [content] puts in its Column. */
+/** A dialog that covers the screen, with a back button and title above whatever [content] puts in its Column. */
 @Composable
 private fun FullScreenDialog(title: String, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
@@ -186,9 +207,12 @@ private fun FullScreenDialog(title: String, onDismiss: () -> Unit, content: @Com
         ) {
             Column(Modifier.fillMaxSize()) {
                 Row(
-                    Modifier.fillMaxWidth().padding(16.dp),
+                    Modifier.fillMaxWidth().padding(start = 4.dp, end = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+                    }
                     Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 }
                 content()
@@ -199,8 +223,15 @@ private fun FullScreenDialog(title: String, onDismiss: () -> Unit, content: @Com
 
 @Composable
 private fun PickFolderButton(onClick: () -> Unit) {
-    FilledTonalIconButton(onClick = onClick, modifier = Modifier.size(56.dp)) {
-        Icon(Icons.Filled.FolderOpen, stringResource(R.string.pick_folder))
+    FilledIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(88.dp),
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+        ),
+    ) {
+        Icon(Icons.Filled.FolderOpen, stringResource(R.string.pick_folder), modifier = Modifier.size(40.dp))
     }
 }
 
@@ -254,7 +285,6 @@ private fun BottomBar(canUndo: Boolean, busy: Boolean, onTrash: () -> Unit, onKe
     Row(
         Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.systemBars)
             .padding(horizontal = 32.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -269,10 +299,14 @@ private fun BottomBar(canUndo: Boolean, busy: Boolean, onTrash: () -> Unit, onKe
             ),
         ) { Icon(Icons.Filled.ThumbDown, stringResource(R.string.to_trash)) }
 
-        FilledTonalIconButton(
+        FilledIconButton(
             onClick = onUndo,
             enabled = canUndo && !busy,
             modifier = Modifier.size(BOTTOM_BUTTON),
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary,
+            ),
         ) { Icon(Icons.AutoMirrored.Filled.Undo, stringResource(R.string.undo)) }
 
         FilledIconButton(
@@ -281,54 +315,4 @@ private fun BottomBar(canUndo: Boolean, busy: Boolean, onTrash: () -> Unit, onKe
             modifier = Modifier.size(BOTTOM_BUTTON),
         ) { Icon(Icons.Filled.ThumbUp, stringResource(R.string.keep)) }
     }
-}
-
-private const val PHOTO_LOAD_TIMEOUT_MS = 3_000L
-
-private sealed interface PhotoState {
-    data object Loading : PhotoState
-    data class Loaded(val bitmap: Bitmap) : PhotoState
-    data object Failed : PhotoState
-}
-
-/**
- * A photo loaded from its content Uri, downsampled to roughly the space it
- * is shown in. Some SAF providers turn unreliable under load and a stream
- * open can hang indefinitely rather than fail, so this is bounded by
- * [PHOTO_LOAD_TIMEOUT_MS] rather than waiting forever — the keep/trash
- * buttons work either way, so a photo that never loads can still be skipped.
- */
-@Composable
-private fun PhotoView(uri: Uri, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val state = produceState<PhotoState>(initialValue = PhotoState.Loading, key1 = uri) {
-        value = PhotoState.Loading
-        val bitmap = withContext(Dispatchers.IO) {
-            withTimeoutOrNull(PHOTO_LOAD_TIMEOUT_MS) { decodeSampled(context.contentResolver, uri, 2048) }
-        }
-        value = if (bitmap != null) PhotoState.Loaded(bitmap) else PhotoState.Failed
-    }
-    Box(modifier, contentAlignment = Alignment.Center) {
-        when (val s = state.value) {
-            PhotoState.Loading -> CircularProgressIndicator()
-            is PhotoState.Loaded -> Image(
-                bitmap = s.bitmap.asImageBitmap(),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize(),
-            )
-            PhotoState.Failed -> Text(stringResource(R.string.photo_load_failed))
-        }
-    }
-}
-
-private fun decodeSampled(resolver: ContentResolver, uri: Uri, maxDimension: Int): Bitmap? {
-    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
-    var sample = 1
-    while (bounds.outWidth / (sample * 2) >= maxDimension || bounds.outHeight / (sample * 2) >= maxDimension) {
-        sample *= 2
-    }
-    val options = BitmapFactory.Options().apply { inSampleSize = sample }
-    return resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
 }
