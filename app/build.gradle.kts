@@ -71,10 +71,8 @@ android {
 
     buildTypes {
         release {
-            // TEMP: off while iterating, R8 was the slow part of every build. Turn
-            // both back to true before shipping a release.
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             // findByName, not getByName: a machine without the safe still builds an
             // unsigned release instead of failing to configure.
             signingConfig = signingConfigs.findByName("release")
