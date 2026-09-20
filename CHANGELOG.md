@@ -7,7 +7,7 @@
 - F: Shortened the Russian and Ukrainian "reset position" menu labels
 - I: Release builds are minified and shrunk again (R8), off since it was slowing down iteration
 - N: Reopening a folder continues from the last-viewed photo, with a Settings toggle to turn that off and "Reset position" in the ⋮ menu
-- N: The ⋮ menu shows free/total disk space, with a green/red bar and a percentage
+- N: The ⋮ menu shows disk space: used of total with a percentage, a bar that fills red as the disk fills, and how much is free
 - E: A stray status-bar inset no longer pushes the file name pill away from the buttons above it
 - F: Trash and Settings are now full screens instead of pop-up dialogs, each with a back button
 - F: The trash screen shows how many photos are in it, next to the total size

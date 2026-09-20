@@ -35,8 +35,9 @@
     <string name="empty_trash_confirm">Всё в корзине будет удалено навсегда</string>
     <string name="trash_clear_action">Очистить</string>
     <string name="disk_space">Место на диске</string>
-    <string name="disk_space_free_of">%1$s свободно из %2$s</string>
-    <string name="disk_space_percent_used">занято %1$d%%</string>
+    <string name="disk_space_used_of">Занято %1$s из %2$s</string>
+    <string name="disk_space_free">Свободно</string>
+    <string name="disk_space_percent">%1$d%%</string>
     <string name="ok">ОК</string>
     <string name="setting_theme">Тема</string>
     <string name="setting_accent">Цвет</string>

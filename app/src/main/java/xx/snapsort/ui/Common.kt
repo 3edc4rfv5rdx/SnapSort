@@ -357,42 +357,53 @@ fun <T> ChoiceDialog(
 private val DiskFreeColor = Color(0xFF43A047)
 private val DiskUsedColor = Color(0xFFE53935)
 
-/** A free/used meter — [freeFraction] green, the rest red. Weights only need
- * to stay in ratio, not sum to 1, so a fraction of exactly 0 or 1 is nudged
- * off zero rather than special-cased, since [Modifier.weight] rejects zero. */
+/** A used/free meter, filling from the start the way every storage meter
+ * does: [usedFraction] red, the free remainder green. Weights only need to
+ * stay in ratio, not sum to 1, so a fraction of exactly 0 or 1 is nudged off
+ * zero rather than special-cased, since [Modifier.weight] rejects zero. */
 @Composable
-fun DiskSpaceBar(freeFraction: Float, modifier: Modifier = Modifier) {
-    val free = freeFraction.coerceIn(0f, 1f)
+fun DiskSpaceBar(usedFraction: Float, modifier: Modifier = Modifier) {
+    val used = usedFraction.coerceIn(0f, 1f)
     Row(modifier.height(20.dp).clip(RoundedCornerShape(10.dp))) {
-        Box(Modifier.weight(free.coerceAtLeast(0.001f)).fillMaxHeight().background(DiskFreeColor))
-        Box(Modifier.weight((1f - free).coerceAtLeast(0.001f)).fillMaxHeight().background(DiskUsedColor))
+        Box(Modifier.weight(used.coerceAtLeast(0.001f)).fillMaxHeight().background(DiskUsedColor))
+        Box(Modifier.weight((1f - used).coerceAtLeast(0.001f)).fillMaxHeight().background(DiskFreeColor))
     }
 }
 
-/** Free/total space on the volume a folder lives on, as text plus a [DiskSpaceBar]. */
+/** Used/total space on the volume a folder lives on, as text plus a [DiskSpaceBar]. */
 @Composable
 fun DiskSpaceDialog(freeBytes: Long, totalBytes: Long, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val fraction = if (totalBytes > 0) freeBytes.toFloat() / totalBytes.toFloat() else 0f
-    val percentUsed = if (totalBytes > 0) (((totalBytes - freeBytes) * 100L) / totalBytes).toInt() else 0
+    val usedBytes = totalBytes - freeBytes
+    val usedFraction = if (totalBytes > 0) usedBytes.toFloat() / totalBytes.toFloat() else 0f
+    val percentUsed = if (totalBytes > 0) ((usedBytes * 100L) / totalBytes).toInt() else 0
     AlertDialog(
         onDismissRequest = onDismiss,
+        // Material's default for a dialog's text slot is onSurfaceVariant —
+        // grey on grey. Both numbers here are the point of the dialog, so they
+        // get full-contrast onSurface at the same size.
+        textContentColor = MaterialTheme.colorScheme.onSurface,
         title = { Text(stringResource(R.string.disk_space)) },
         text = {
             Column {
                 Text(
                     dotted(
                         stringResource(
-                            R.string.disk_space_free_of,
-                            formatSize(context, freeBytes),
+                            R.string.disk_space_used_of,
+                            formatSize(context, usedBytes),
                             formatSize(context, totalBytes),
                         ),
-                        stringResource(R.string.disk_space_percent_used, percentUsed),
+                        stringResource(R.string.disk_space_percent, percentUsed),
                     ),
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Spacer(Modifier.height(12.dp))
-                DiskSpaceBar(freeFraction = fraction, modifier = Modifier.fillMaxWidth())
+                DiskSpaceBar(usedFraction = usedFraction, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    labelValue(stringResource(R.string.disk_space_free), formatSize(context, freeBytes)),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             }
         },
         confirmButton = { DialogDismissButton(stringResource(R.string.ok), onDismiss) },
