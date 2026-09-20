@@ -140,6 +140,9 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         root = dir
+        // Housekeeping, not part of the scan: an expired photo goes whether or
+        // not the trash screen is ever opened.
+        viewModelScope.launch { withContext(Dispatchers.IO) { Trash.purgeExpired(dir) } }
         rescan(restorePosition)
     }
 

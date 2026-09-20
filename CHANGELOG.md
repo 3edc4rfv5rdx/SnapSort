@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- N: A photo left in the trash for 30 days is now deleted for good, checked whenever a folder opens
 - F: Shortened the Russian and Ukrainian "reset position" menu labels
 - I: Release builds are minified and shrunk again (R8), off since it was slowing down iteration
 - N: Reopening a folder continues from the last-viewed photo, with a Settings toggle to turn that off and "Reset position" in the ⋮ menu

@@ -17,6 +17,9 @@ object Trash {
     /** Where the trash lives, relative to the granted root. */
     const val DIR_PATH = "Documents/SnapSort/.Trash"
 
+    /** How long the trash keeps a photo before deleting it for good. */
+    const val MAX_AGE_MS = 30L * 24 * 60 * 60 * 1000
+
     private const val RECORD_SUFFIX = ".path"
 
     class Entry(
@@ -110,6 +113,18 @@ object Trash {
 
     /** Deletes the whole trash folder, stray files included. */
     fun empty(root: File): Boolean = dirFor(root).deleteRecursively()
+
+    /**
+     * Deletes everything trashed more than [MAX_AGE_MS] ago. Checks the folder
+     * itself rather than going through [dirFor], so housekeeping on a root that
+     * has never had a trash does not create one.
+     */
+    fun purgeExpired(root: File, now: Long = System.currentTimeMillis()) {
+        if (!File(root, DIR_PATH).isDirectory) return
+        for (entry in list(root)) {
+            if (now - entry.deletedAt > MAX_AGE_MS) purge(root, entry)
+        }
+    }
 
     private fun forget(trash: File, id: String) {
         File(trash, id).deleteRecursively()
