@@ -1,7 +1,6 @@
 package xx.snapsort
 
 import android.app.Application
-import android.net.Uri
 import android.os.Environment
 import android.os.StatFs
 import androidx.annotation.StringRes
@@ -119,14 +118,13 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         loadFolder(File(path), restorePosition = true)
     }
 
-    /** Called with the tree the user just picked — either the first pick, or a
+    /** Called with the folder the user just chose — either the first pick, or a
      * later "change folder" from the menu. Always starts at the first photo:
      * a saved position only means something for the same folder reopened by
      * [start], not a fresh pick. */
-    fun openFolder(uri: Uri) {
+    fun openFolder(dir: File) {
         val context = getApplication<Application>()
-        val dir = uri.treeToFile()
-        if (dir == null) {
+        if (!dir.isDirectory) {
             notice = Notice(R.string.folder_unavailable)
             return
         }

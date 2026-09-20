@@ -3,6 +3,9 @@
     <string name="app_name">SnapSort</string>
     <string name="pick_folder">Вибрати теку</string>
     <string name="pick_folder_hint">Виберіть теку з фотографіями. SnapSort пройде всіма фото всередині неї.</string>
+    <string name="folder_up">Вгору</string>
+    <string name="folder_use_this">Вибрати цю теку</string>
+    <string name="folder_no_subfolders">Усередині немає тек</string>
     <string name="need_storage_access">Потрібен доступ до файлів</string>
     <string name="need_storage_access_hint">SnapSort читає і переміщує фото напряму, а не через системний вибір щоразу. Увімкніть «Дозволити доступ до всіх файлів» на наступному екрані.</string>
     <string name="grant_access">Надати доступ</string>

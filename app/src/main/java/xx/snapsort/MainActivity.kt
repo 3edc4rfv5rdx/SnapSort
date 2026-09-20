@@ -36,10 +36,6 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel by viewModels<SnapSortViewModel>()
 
-    private val pickFolder = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        if (uri != null) viewModel.openFolder(uri)
-    }
-
     // The result code from this one is meaningless: the Settings screen for
     // "All files access" does not report back whether the switch was
     // flipped, only that the user left it. onResume is what actually
@@ -69,7 +65,6 @@ class MainActivity : ComponentActivity() {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     SwipeScreen(
                         vm = viewModel,
-                        onPickFolder = { pickFolder.launch(null) },
                         onGrantAccess = { requestAllFilesAccess.launch(allFilesAccessIntent(this)) },
                         onAbout = ::showAbout,
                     )

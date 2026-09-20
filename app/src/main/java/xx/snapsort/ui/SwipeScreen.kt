@@ -59,12 +59,12 @@ import xx.snapsort.rememberDeviceRotation
 @Composable
 fun SwipeScreen(
     vm: SnapSortViewModel,
-    onPickFolder: () -> Unit,
     onGrantAccess: () -> Unit,
     onAbout: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    var pickerOpen by rememberSaveable { mutableStateOf(false) }
     // Saveable: picking a language recreates the activity, and a plain
     // remember would drop the user back on the photo screen mid-Settings.
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
@@ -96,6 +96,19 @@ fun SwipeScreen(
                 SettingsScreen(modifier = Modifier.weight(1f))
             }
 
+            pickerOpen -> AppScreen(
+                title = stringResource(R.string.pick_folder),
+                onBack = { pickerOpen = false },
+            ) {
+                FolderPickerScreen(
+                    onPick = { dir ->
+                        pickerOpen = false
+                        vm.openFolder(dir)
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
             else -> {
                 when {
                     !vm.hasStorageAccess -> EmptyState(
@@ -111,7 +124,7 @@ fun SwipeScreen(
                         icon = Icons.Filled.FolderOpen,
                         title = stringResource(R.string.pick_folder),
                         message = stringResource(R.string.pick_folder_hint),
-                        action = { PickFolderButton(onPickFolder) },
+                        action = { PickFolderButton { pickerOpen = true } },
                     )
 
                     vm.scanning -> ScanningState(vm.scannedCount)
@@ -120,7 +133,7 @@ fun SwipeScreen(
                         icon = Icons.Filled.FolderOpen,
                         title = stringResource(R.string.no_photos),
                         message = null,
-                        action = { PickFolderButton(onPickFolder) },
+                        action = { PickFolderButton { pickerOpen = true } },
                     )
 
                     else -> vm.current?.let { entry ->
@@ -189,7 +202,7 @@ fun SwipeScreen(
                                     style = MaterialTheme.typography.titleLarge,
                                 )
                             },
-                            onClick = { menuOpen = false; onPickFolder() },
+                            onClick = { menuOpen = false; pickerOpen = true },
                         )
                         DropdownMenuItem(
                             text = {

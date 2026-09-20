@@ -3,6 +3,9 @@
     <string name="app_name">SnapSort</string>
     <string name="pick_folder">Choose folder</string>
     <string name="pick_folder_hint">Pick the folder your photos are in. SnapSort goes through every photo under it.</string>
+    <string name="folder_up">Up</string>
+    <string name="folder_use_this">Use this folder</string>
+    <string name="folder_no_subfolders">No folders inside</string>
     <string name="need_storage_access">Needs file access</string>
     <string name="need_storage_access_hint">SnapSort reads and moves photos directly, not through the system picker each time. Turn on \"Allow access to manage all files\" for it on the next screen.</string>
     <string name="grant_access">Grant access</string>

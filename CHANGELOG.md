@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- N: Folders are chosen in the app's own browser now instead of the system picker, so Android no longer asks to allow access on every change; an SD card can be picked too
 - F: Looking into the trash no longer creates the SnapSort trash folder on storage when there is nothing to show
 - I: Dropped the androidx.documentfile dependency, unused since file access moved off SAF
 - F: A photo opened from the trash now turns with the phone, the same way the main screen does

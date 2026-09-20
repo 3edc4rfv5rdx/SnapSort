@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
-import android.provider.DocumentsContract
+import android.os.storage.StorageManager
 import android.provider.Settings
 import java.io.File
 
@@ -18,24 +18,17 @@ fun hasAllFilesAccess(): Boolean = Environment.isExternalStorageManager()
 fun allFilesAccessIntent(context: Context): Intent =
     Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:${context.packageName}"))
 
+/** A volume the folder picker can start from, named the way the system names it. */
+class StorageRoot(val dir: File, val label: String)
+
 /**
- * The folder a SAF tree Uri points to, as a plain path. SnapSort keeps the
- * system folder picker (ACTION_OPEN_DOCUMENT_TREE) for its UI, but once
- * [hasAllFilesAccess] is granted, everything else — scanning, reading,
- * moving — goes through this path with plain java.io.File instead of the
- * picker's own Uri.
- *
- * Primary storage only: that is where a device without removable storage
- * keeps DCIM, and it is what this app has been pointed at so far. A volume
- * that is not primary is reported as unsupported rather than guessed at.
+ * Every storage volume this app can walk — internal storage, and an SD card
+ * when one is in. The app browses these with plain java.io.File under
+ * [hasAllFilesAccess] rather than through the system's document picker: the
+ * picker asks the user to confirm access to each folder it hands over, every
+ * single time, for a grant this app never uses once it has a path.
  */
-fun Uri.treeToFile(): File? = runCatching {
-    val treeId = DocumentsContract.getTreeDocumentId(this)
-    val colon = treeId.indexOf(':')
-    if (colon < 0) return@runCatching null
-    val volume = treeId.substring(0, colon)
-    if (volume != "primary") return@runCatching null
-    val relative = treeId.substring(colon + 1)
-    val root = Environment.getExternalStorageDirectory()
-    if (relative.isEmpty()) root else File(root, relative)
-}.getOrNull()
+fun storageRoots(context: Context): List<StorageRoot> =
+    context.getSystemService(StorageManager::class.java).storageVolumes.mapNotNull { volume ->
+        volume.directory?.takeIf { it.isDirectory }?.let { StorageRoot(it, volume.getDescription(context)) }
+    }

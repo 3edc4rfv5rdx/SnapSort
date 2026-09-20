@@ -3,6 +3,9 @@
     <string name="app_name">SnapSort</string>
     <string name="pick_folder">Выбрать папку</string>
     <string name="pick_folder_hint">Выберите папку с фотографиями. SnapSort пройдёт по всем фото внутри неё.</string>
+    <string name="folder_up">Вверх</string>
+    <string name="folder_use_this">Выбрать эту папку</string>
+    <string name="folder_no_subfolders">Внутри нет папок</string>
     <string name="need_storage_access">Нужен доступ к файлам</string>
     <string name="need_storage_access_hint">SnapSort читает и перемещает фото напрямую, а не через системный выбор каждый раз. Включите «Разрешить доступ ко всем файлам» на следующем экране.</string>
     <string name="grant_access">Дать доступ</string>
