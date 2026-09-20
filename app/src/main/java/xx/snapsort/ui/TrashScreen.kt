@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import xx.snapsort.R
 import xx.snapsort.Trash
+import xx.snapsort.rememberDeviceRotation
 import java.text.DateFormat
 import java.util.Date
 
@@ -66,7 +67,11 @@ fun TrashScreen(
     if (viewing != null) {
         BackHandler { viewingId = null }
         Box(modifier.fillMaxSize()) {
-            PhotoView(path = viewing.item.path, modifier = Modifier.fillMaxSize())
+            PhotoView(
+                path = viewing.item.path,
+                rotation = rememberDeviceRotation(),
+                modifier = Modifier.fillMaxSize(),
+            )
             InverseIconButton(
                 icon = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.back),
