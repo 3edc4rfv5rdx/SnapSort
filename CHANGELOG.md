@@ -3,7 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
-- F: Shortened the Russian "reset position" menu label
+- F: Shortened the Russian and Ukrainian "reset position" menu labels
 - I: Release builds are minified and shrunk again (R8), off since it was slowing down iteration
 - N: Reopening a folder continues from the last-viewed photo, with a Settings toggle to turn that off and "Reset position" in the ⋮ menu
 - N: The ⋮ menu shows free/total disk space, with a green/red bar and a percentage
