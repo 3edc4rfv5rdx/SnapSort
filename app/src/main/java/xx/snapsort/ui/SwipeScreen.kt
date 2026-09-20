@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -95,7 +96,12 @@ fun SwipeScreen(
             else -> vm.current?.let { entry ->
                 val rotation = rememberDeviceRotation()
                 Column(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .windowInsetsPadding(WindowInsets.statusBars),
+                    ) {
                         PhotoView(
                             path = entry.file.path,
                             rotation = rotation,
@@ -103,20 +109,12 @@ fun SwipeScreen(
                             onSwipeBackward = vm::previous,
                             modifier = Modifier.fillMaxSize(),
                         )
-                        NamePill(
-                            name = entry.file.name,
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .windowInsetsPadding(WindowInsets.systemBars)
-                                .padding(start = 12.dp, top = 12.dp, end = 64.dp),
-                        )
                         CountPill(
                             current = vm.index + 1,
                             total = vm.images.size,
                             modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .windowInsetsPadding(WindowInsets.systemBars)
-                                .padding(top = 12.dp),
+                                .align(Alignment.TopStart)
+                                .padding(start = 12.dp, top = 12.dp, end = 64.dp),
                         )
                     }
                     BottomBar(
@@ -127,21 +125,15 @@ fun SwipeScreen(
                         onBack = vm::previous,
                         onForward = vm::next,
                     )
-                    if (entry.relativePath.isNotBlank()) {
-                        PathPill(
-                            path = entry.relativePath,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .windowInsetsPadding(WindowInsets.systemBars)
-                                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                        )
-                    } else {
-                        Spacer(
-                            Modifier
-                                .fillMaxWidth()
-                                .windowInsetsPadding(WindowInsets.systemBars)
-                                .height(8.dp),
-                        )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .windowInsetsPadding(WindowInsets.systemBars)
+                            .padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 8.dp),
+                    ) {
+                        NamePill(name = entry.file.name, modifier = Modifier.fillMaxWidth())
+                        Spacer(Modifier.height(2.dp))
+                        PathPill(path = entry.relativePath.ifBlank { "/" }, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
@@ -151,24 +143,26 @@ fun SwipeScreen(
             MoreButton(onClick = { menuOpen = true }, overlay = true)
             AppMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.undo)) },
+                    text = { Text(stringResource(R.string.undo), style = MaterialTheme.typography.titleLarge) },
                     enabled = vm.canUndo,
                     onClick = { menuOpen = false; vm.undo() },
                 )
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.change_folder)) },
+                    text = {
+                        Text(stringResource(R.string.change_folder), style = MaterialTheme.typography.titleLarge)
+                    },
                     onClick = { menuOpen = false; onPickFolder() },
                 )
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.trash)) },
+                    text = { Text(stringResource(R.string.trash), style = MaterialTheme.typography.titleLarge) },
                     onClick = { menuOpen = false; vm.openTrash() },
                 )
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.settings)) },
+                    text = { Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleLarge) },
                     onClick = { menuOpen = false; settingsOpen = true },
                 )
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.about)) },
+                    text = { Text(stringResource(R.string.about), style = MaterialTheme.typography.titleLarge) },
                     onClick = { menuOpen = false; onAbout() },
                 )
             }
@@ -292,16 +286,8 @@ private val BOTTOM_BUTTON = 64.dp
 private val NAV_BUTTON = 80.dp
 private val NAV_ICON = 36.dp
 
-// White for back/forward, not a theme role: every *Container role in
-// Material3 is a pale tint by design and the plain `secondary` role falls
-// back to a muted baseline colour this app never customises the way it does
-// `primary` — neither reads as a pressed button against the dark window.
-// Black icon glyphs on every button instead of white: a black icon on a
+// Black icon glyphs on the trash button instead of white: a black icon on a
 // saturated fill reads more clearly than white does at this size.
-private val NavButtonColor = Color.White
-// Faded rather than Material's default disabled grey, so a button at the
-// start/end of the queue still reads as the same button, just dimmed.
-private val NavButtonColorDim = NavButtonColor.copy(alpha = 0.35f)
 private val ButtonIconColor = Color.Black
 
 @Composable
@@ -313,10 +299,15 @@ private fun BottomBar(
     onBack: () -> Unit,
     onForward: () -> Unit,
 ) {
+    // The inverse-surface pair, not a fixed colour: it is dark in a light
+    // theme and light in a dark one, always the opposite of the window
+    // behind it, so back/forward stay visible whichever theme is in force.
+    val navContainer = MaterialTheme.colorScheme.inverseSurface
+    val navContent = MaterialTheme.colorScheme.inverseOnSurface
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 32.dp, vertical = 16.dp),
+            .padding(start = 32.dp, end = 32.dp, top = 12.dp, bottom = 0.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -335,10 +326,10 @@ private fun BottomBar(
             enabled = canGoBack && !busy,
             modifier = Modifier.size(NAV_BUTTON),
             colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = NavButtonColor,
-                contentColor = ButtonIconColor,
-                disabledContainerColor = NavButtonColorDim,
-                disabledContentColor = ButtonIconColor.copy(alpha = 0.4f),
+                containerColor = navContainer,
+                contentColor = navContent,
+                disabledContainerColor = navContainer.copy(alpha = 0.35f),
+                disabledContentColor = navContent.copy(alpha = 0.4f),
             ),
         ) {
             Icon(
@@ -353,10 +344,10 @@ private fun BottomBar(
             enabled = canGoForward && !busy,
             modifier = Modifier.size(NAV_BUTTON),
             colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = NavButtonColor,
-                contentColor = ButtonIconColor,
-                disabledContainerColor = NavButtonColorDim,
-                disabledContentColor = ButtonIconColor.copy(alpha = 0.4f),
+                containerColor = navContainer,
+                contentColor = navContent,
+                disabledContainerColor = navContainer.copy(alpha = 0.35f),
+                disabledContentColor = navContent.copy(alpha = 0.4f),
             ),
         ) {
             Icon(

@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -338,22 +337,34 @@ private fun InfoPill(modifier: Modifier = Modifier, content: @Composable () -> U
     }
 }
 
-/** A photo's file name, meant to sit over the top of the photo. */
+/**
+ * A photo's file name, meant to sit over the top of the photo. Sized by
+ * [modifier] — pass [Modifier.fillMaxWidth] to let it use all the room a
+ * caller gives it rather than some guessed-at fixed width; `TextOverflow
+ * .Ellipsis` already adapts to whatever width that turns out to be.
+ */
 @Composable
 fun NamePill(name: String, modifier: Modifier = Modifier) {
-    InfoPill(modifier.widthIn(max = 220.dp)) {
-        Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelMedium)
+    InfoPill(modifier) {
+        Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
-private const val PATH_PILL_MAX_CHARS = 40
+// One bodyLarge character is roughly this wide; used only to decide how much
+// of the path to keep before the front-truncating "…", since TextOverflow
+// has no built-in start-ellipsis this project can rely on being present.
+private const val CHAR_WIDTH_DP = 8.5f
 
-/** A photo's folder, truncated from the *start* so the part nearest the file stays visible. */
+/** A photo's folder, truncated from the *start* so the part nearest the file
+ * stays visible — sized by [modifier], same as [NamePill]. */
 @Composable
 fun PathPill(path: String, modifier: Modifier = Modifier) {
-    val shown = if (path.length > PATH_PILL_MAX_CHARS) "…" + path.takeLast(PATH_PILL_MAX_CHARS - 1) else path
     InfoPill(modifier) {
-        Text(shown, maxLines = 1, overflow = TextOverflow.Clip, style = MaterialTheme.typography.labelMedium)
+        BoxWithConstraints {
+            val maxChars = (maxWidth.value / CHAR_WIDTH_DP).toInt().coerceAtLeast(4)
+            val shown = if (path.length > maxChars) "…" + path.takeLast(maxChars - 1) else path
+            Text(shown, maxLines = 1, overflow = TextOverflow.Clip, style = MaterialTheme.typography.bodyLarge)
+        }
     }
 }
 
@@ -361,7 +372,7 @@ fun PathPill(path: String, modifier: Modifier = Modifier) {
 @Composable
 fun CountPill(current: Int, total: Int, modifier: Modifier = Modifier) {
     InfoPill(modifier) {
-        Text("$current / $total", maxLines = 1, style = MaterialTheme.typography.labelMedium)
+        Text("$current / $total", maxLines = 1, style = MaterialTheme.typography.bodyLarge)
     }
 }
 

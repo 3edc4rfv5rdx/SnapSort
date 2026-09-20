@@ -3,6 +3,11 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- F: The photo no longer shows behind the status bar
+- F: Back/forward now use the theme's own light/dark-swapping colours instead of a fixed white, and sit lower, right above the file name and path
+- F: The file name and path pills now use the full width available instead of a fixed guess, and the path's front-truncation sizes itself to that width
+- F: The ⋮ menu's text is bigger
+- F: The launcher icon's strike is shorter, clear of the plate's edges
 - N: Explicit back/forward buttons next to trash, plus a current/total counter, so paging works without swiping too
 - F: "Change folder" in the ⋮ menu switches folders without waiting for a fresh pick every launch — the last folder is remembered again
 - F: Undo now lives in the ⋮ menu instead of its own button; trash/back/forward all work on one single position in the list, so paging back to an already-trashed spot can't show a broken "could not load" any more
