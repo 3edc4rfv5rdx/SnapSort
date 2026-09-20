@@ -43,7 +43,7 @@
     <string name="setting_language">Язык</string>
     <string name="setting_update_check">Проверять обновления при запуске</string>
     <string name="setting_remember_position">Запоминать позицию в папке</string>
-    <string name="reset_position">Сбросить позицию</string>
+    <string name="reset_position">Сброс позиции</string>
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
