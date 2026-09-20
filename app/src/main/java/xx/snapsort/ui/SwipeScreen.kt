@@ -195,6 +195,10 @@ fun SwipeScreen(
                             text = {
                                 Text(stringResource(R.string.trash), style = MaterialTheme.typography.titleLarge)
                             },
+                            // The trash lives under the picked folder: without
+                            // one there is nothing to list, and opening it
+                            // would leave the screen loading forever.
+                            enabled = vm.hasFolder,
                             onClick = { menuOpen = false; vm.openTrash() },
                         )
                         DropdownMenuItem(

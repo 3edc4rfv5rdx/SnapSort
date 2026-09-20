@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- E: Opening the trash before a folder is picked no longer leaves a screen that loads forever
 - E: Changing the language no longer closes the Settings screen
 - E: Pinch-to-zoom now works on the first try instead of needing a second attempt — the swipe detector was swallowing the pinch
 - F: Secondary text — empty states, the trash's "empty" line and each entry's original path — is now full contrast instead of grey on grey
