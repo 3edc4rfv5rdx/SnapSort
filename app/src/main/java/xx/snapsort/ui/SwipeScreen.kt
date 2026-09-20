@@ -90,7 +90,7 @@ fun SwipeScreen(
             }
 
             settingsOpen -> AppScreen(title = stringResource(R.string.settings), onBack = { settingsOpen = false }) {
-                SettingsScreen(modifier = Modifier.weight(1f))
+                SettingsScreen(onResetPosition = vm::resetPosition, modifier = Modifier.weight(1f))
             }
 
             else -> {

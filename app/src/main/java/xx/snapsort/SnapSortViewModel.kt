@@ -116,11 +116,13 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     fun start() {
         val context = getApplication<Application>()
         val path = AppSettings.folderPath(context) ?: return
-        loadFolder(File(path))
+        loadFolder(File(path), restorePosition = true)
     }
 
     /** Called with the tree the user just picked — either the first pick, or a
-     * later "change folder" from the menu. */
+     * later "change folder" from the menu. Always starts at the first photo:
+     * a saved position only means something for the same folder reopened by
+     * [start], not a fresh pick. */
     fun openFolder(uri: Uri) {
         val context = getApplication<Application>()
         val dir = uri.treeToFile()
@@ -129,19 +131,19 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         AppSettings.setFolderPath(context, dir.path)
-        loadFolder(dir)
+        loadFolder(dir, restorePosition = false)
     }
 
-    private fun loadFolder(dir: File) {
+    private fun loadFolder(dir: File, restorePosition: Boolean) {
         if (!dir.isDirectory) {
             notice = Notice(R.string.folder_unavailable)
             return
         }
         root = dir
-        rescan()
+        rescan(restorePosition)
     }
 
-    fun rescan() {
+    fun rescan(restorePosition: Boolean = false) {
         val r = root ?: return
         scanJob?.cancel()
         scanning = true
@@ -162,6 +164,9 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                     ImageScanner.scan(r, progress) { ensureActive() }
                 }
                 images = found.sortedWith(compareBy({ it.relativePath }, { it.file.name }))
+                if (restorePosition && images.isNotEmpty() && AppSettings.rememberPosition.value) {
+                    index = AppSettings.lastIndex(getApplication()).coerceIn(0, images.lastIndex)
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -173,16 +178,31 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Every place [index] moves during browsing goes through here, so the
+     * saved position stays current for [start] to pick back up next launch. */
+    private fun moveTo(newIndex: Int) {
+        index = newIndex
+        if (AppSettings.rememberPosition.value) {
+            AppSettings.setLastIndex(getApplication(), index)
+        }
+    }
+
     /** One photo forward — pure navigation, nothing on disk changes. */
     fun next() {
         if (images.isEmpty()) return
-        index = (index + 1).coerceAtMost(images.lastIndex)
+        moveTo((index + 1).coerceAtMost(images.lastIndex))
     }
 
     /** One photo back — pure navigation, nothing on disk changes. */
     fun previous() {
         if (images.isEmpty()) return
-        index = (index - 1).coerceAtLeast(0)
+        moveTo((index - 1).coerceAtLeast(0))
+    }
+
+    /** Jumps back to the first photo and forgets the saved position, from the Settings "reset" row. */
+    fun resetPosition() {
+        AppSettings.setLastIndex(getApplication(), 0)
+        if (images.isNotEmpty()) index = 0
     }
 
     /** Moves the current photo to the trash and drops it out of the queue. */
@@ -195,7 +215,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             if (trashId != null) {
                 images = images.toMutableList().also { it.removeAt(at) }
                 trashedStack.addLast(TrashedSlot(at, entry, trashId))
-                index = at.coerceAtMost((images.size - 1).coerceAtLeast(0))
+                moveTo(at.coerceAtMost((images.size - 1).coerceAtLeast(0)))
             } else {
                 notice = Notice(R.string.delete_failed)
             }
@@ -214,7 +234,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             }
             if (ok) {
                 images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
-                index = slot.index.coerceIn(0, images.lastIndex)
+                moveTo(slot.index.coerceIn(0, images.lastIndex))
             } else {
                 trashedStack.addLast(slot)
                 notice = Notice(R.string.restore_failed)

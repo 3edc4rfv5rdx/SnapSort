@@ -42,6 +42,8 @@
     <string name="setting_accent">Колір</string>
     <string name="setting_language">Мова</string>
     <string name="setting_update_check">Перевіряти оновлення під час запуску</string>
+    <string name="setting_remember_position">Запам\'ятовувати позицію в теці</string>
+    <string name="reset_position">Скинути позицію</string>
     <string name="theme_system">Системна</string>
     <string name="theme_light">Світла</string>
     <string name="theme_dark">Темна</string>

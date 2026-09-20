@@ -42,6 +42,8 @@
     <string name="setting_accent">Color</string>
     <string name="setting_language">Language</string>
     <string name="setting_update_check">Check for updates at launch</string>
+    <string name="setting_remember_position">Remember position in folder</string>
+    <string name="reset_position">Reset position</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>

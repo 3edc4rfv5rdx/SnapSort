@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- N: Reopening a folder continues from the last-viewed photo, with a Settings toggle to turn that off and a "Reset position" row
 - N: The ⋮ menu shows free/total disk space, with a green/red bar and a percentage
 - E: A stray status-bar inset no longer pushes the file name pill away from the buttons above it
 - F: Trash and Settings are now full screens instead of pop-up dialogs, each with a back button

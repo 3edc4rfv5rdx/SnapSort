@@ -39,13 +39,14 @@ import xx.snapsort.supportedLanguages
 /** Which editor is open; only one can be at a time. */
 private enum class Editing { NONE, THEME, ACCENT, LANGUAGE }
 
-/** Theme, accent colour, language, and the start-up update check. */
+/** Theme, accent colour, language, the start-up update check, and browse position. */
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier) {
+fun SettingsScreen(onResetPosition: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val activity = LocalActivity.current
     val themeMode by AppSettings.themeMode.collectAsState()
     val accentIndex by AppSettings.accentIndex.collectAsState()
+    val rememberPosition by AppSettings.rememberPosition.collectAsState()
 
     val systemLabel = stringResource(R.string.language_system)
     val languages = remember(context, systemLabel) { supportedLanguages(context, systemLabel) }
@@ -105,6 +106,32 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                     Updater.setEnabled(context, it)
                 },
             )
+        }
+        HorizontalDivider()
+        // The whole row is not clickable: the switch is the control.
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.setting_remember_position),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = rememberPosition,
+                onCheckedChange = { AppSettings.setRememberPosition(context, it) },
+            )
+        }
+        HorizontalDivider()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onResetPosition)
+                .padding(vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.reset_position), style = MaterialTheme.typography.titleLarge)
         }
     }
 
