@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- E: Pinch-to-zoom now works on the first try instead of needing a second attempt — the swipe detector was swallowing the pinch
 - F: Secondary text — empty states, the trash's "empty" line and each entry's original path — is now full contrast instead of grey on grey
 - N: A photo left in the trash for 30 days is now deleted for good, checked whenever a folder opens
 - F: Shortened the Russian and Ukrainian "reset position" menu labels

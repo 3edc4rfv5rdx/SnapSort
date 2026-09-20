@@ -10,8 +10,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -66,6 +68,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -522,39 +525,46 @@ fun PhotoView(
     }
     var scale by remember(path) { mutableFloatStateOf(1f) }
     var offset by remember(path) { mutableStateOf(Offset.Zero) }
-    val zoomed = scale > 1f
 
     BoxWithConstraints(
-        modifier
-            .pointerInput(path) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    if (zoom != 1f) {
-                        scale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
-                        if (scale <= 1f) offset = Offset.Zero
+        modifier.pointerInput(path) {
+            val threshold = SWIPE_THRESHOLD.toPx()
+            // One gesture loop for both zoom and swipe, not two detectors side
+            // by side: a drag detector consumes the events it handles, and
+            // detectTransformGestures abandons a gesture whose events someone
+            // else consumed, so a pinch that also tripped the drag's slop was
+            // swallowed and the first attempt to zoom did nothing.
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false)
+                var swipeX = 0f
+                // Read through the remembered state, not a value captured when
+                // this block started: pointerInput only restarts on a new path,
+                // so a captured "is it zoomed" would still say no after a zoom.
+                var transforming = scale > 1f
+                do {
+                    val event = awaitPointerEvent()
+                    // Something else claimed this gesture; drop it rather than
+                    // letting a half-seen drag turn into a swipe.
+                    if (event.changes.any { it.isConsumed }) return@awaitEachGesture
+                    if (event.changes.size > 1) transforming = true
+                    val pan = event.calculatePan()
+                    if (transforming) {
+                        val zoom = event.calculateZoom()
+                        if (zoom != 1f) {
+                            scale = (scale * zoom).coerceIn(1f, MAX_ZOOM)
+                            if (scale <= 1f) offset = Offset.Zero
+                        }
+                        if (scale > 1f) offset += pan
+                        event.changes.forEach { if (it.positionChanged()) it.consume() }
+                    } else {
+                        swipeX += pan.x
                     }
-                    if (scale > 1f) offset += pan
+                } while (event.changes.any { it.pressed })
+                if (!transforming) {
+                    if (swipeX <= -threshold) onSwipeForward() else if (swipeX >= threshold) onSwipeBackward()
                 }
             }
-            .then(
-                if (zoomed) {
-                    Modifier
-                } else {
-                    Modifier.pointerInput(path) {
-                        val threshold = SWIPE_THRESHOLD.toPx()
-                        var accumulated = 0f
-                        detectHorizontalDragGestures(
-                            onDragEnd = {
-                                if (accumulated <= -threshold) onSwipeForward()
-                                else if (accumulated >= threshold) onSwipeBackward()
-                                accumulated = 0f
-                            },
-                        ) { change, dragAmount ->
-                            change.consume()
-                            accumulated += dragAmount
-                        }
-                    }
-                },
-            ),
+        },
         contentAlignment = Alignment.Center,
     ) {
         val turned = rotation == 90 || rotation == 270
