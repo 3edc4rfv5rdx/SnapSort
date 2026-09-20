@@ -25,6 +25,7 @@
     <string name="cancel">Cancel</string>
     <string name="delete_failed">Could not delete</string>
     <string name="trash_empty_state">The trash is empty</string>
+    <string name="trash_photo_count">Photos</string>
     <string name="restore">Restore</string>
     <string name="restored">Restored</string>
     <string name="restore_exists">Something with that name is already in the original place</string>
@@ -32,6 +33,7 @@
     <string name="delete_forever">Delete forever</string>
     <string name="empty_trash">Empty trash</string>
     <string name="empty_trash_confirm">Everything in the trash will be deleted for good</string>
+    <string name="trash_clear_action">Clear</string>
     <string name="setting_theme">Theme</string>
     <string name="setting_accent">Color</string>
     <string name="setting_language">Language</string>

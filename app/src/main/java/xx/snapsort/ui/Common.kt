@@ -36,6 +36,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,10 +56,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -175,23 +178,61 @@ fun noticeText(context: Context, notice: Notice): String {
 val COMPACT_BUTTON = 40.dp
 
 /**
- * The ⋮ button that opens an [AppMenu]. [overlay] gives it a round dark
- * backdrop for when it sits over a photo of unknown colour, rather than a
- * plain surface it would otherwise disappear against.
+ * An icon button with a round dark backdrop, for when it sits over a photo
+ * of unknown colour rather than a plain surface it would otherwise
+ * disappear against.
  */
+@Composable
+fun OverlayIconButton(
+    icon: ImageVector,
+    contentDescription: String?,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = Color.Black.copy(alpha = 0.55f),
+            contentColor = Color.White,
+        ),
+    ) {
+        Icon(icon, contentDescription)
+    }
+}
+
+/**
+ * An icon button in the app's inverse-surface pair — dark in a light theme,
+ * light in a dark one, always the opposite of the window behind it — for a
+ * control over a photo that should read as a solid button rather than a
+ * translucent overlay.
+ */
+@Composable
+fun InverseIconButton(
+    icon: ImageVector,
+    contentDescription: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FilledIconButton(
+        onClick = onClick,
+        modifier = modifier,
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.inverseSurface,
+            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+        ),
+    ) {
+        Icon(icon, contentDescription)
+    }
+}
+
+/** The ⋮ button that opens an [AppMenu]. [overlay] uses [OverlayIconButton] for when it sits over a photo. */
 @Composable
 fun MoreButton(onClick: () -> Unit, enabled: Boolean = true, overlay: Boolean = false) {
     if (overlay) {
-        IconButton(
-            onClick = onClick,
-            enabled = enabled,
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = Color.Black.copy(alpha = 0.55f),
-                contentColor = Color.White,
-            ),
-        ) {
-            Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options))
-        }
+        OverlayIconButton(Icons.Filled.MoreVert, stringResource(R.string.more_options), onClick, enabled)
     } else {
         IconButton(onClick = onClick, enabled = enabled) {
             Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options))
@@ -295,7 +336,7 @@ fun <T> ChoiceDialog(
                         RadioButton(selected = option == selected, onClick = { onPick(option) })
                         Text(
                             text = label(option),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
@@ -478,6 +519,32 @@ fun PhotoView(
                 )
                 PhotoState.Failed -> Text(stringResource(R.string.photo_load_failed))
             }
+        }
+    }
+}
+
+// ---------- Thumbnails ----------
+
+private const val THUMBNAIL_MAX_DIMENSION = 240
+
+/** A small square preview of the photo at [path], for a list row — the file [PhotoView] would open full-screen. */
+@Composable
+fun PhotoThumbnail(path: String, modifier: Modifier = Modifier) {
+    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = path) {
+        value = withContext(Dispatchers.IO) { decodeSampled(path, THUMBNAIL_MAX_DIMENSION) }
+    }
+    Box(
+        modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        bitmap?.let {
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
         }
     }
 }

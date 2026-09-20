@@ -7,24 +7,25 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/3edc4rfv5rdx/SnapSort)](https://github.com/3edc4rfv5rdx/SnapSort/releases/latest)
 
-SnapSort shows one photo at a time, full screen, from a folder you pick. One
-tap keeps it and moves to the next; another sends it to the app's own trash
-instead of deleting it outright.
+SnapSort shows one photo at a time, full screen, from a folder you pick. A
+tap sends it to the app's own trash instead of deleting it outright; moving
+on to the next photo with the back/forward buttons is all it takes to
+keep one.
 
 ## Features
 
 - **One photo at a time**: every image under the picked folder, in order.
-  Tap the check to keep it, the bin to trash it — either way the next photo
-  comes up. Undo steps back one photo, restoring it from the trash first if
-  that is where it just went.
+  The bin trashes the current photo; back and forward move to the previous
+  or next one, so nothing happens to a photo just by looking at it. Undo,
+  in the ⋮ menu, restores the last trashed photo to its place.
 - **Folder access**: pick any folder once, through the system's own folder
   picker; SnapSort remembers it and goes through every photo in every
   subfolder under it.
 - **Trash**: `Documents/SnapSort/.Trash` on the same storage, so moving a
-  photo there is instant, not a copy. Open it from the ⋮ menu; each entry's
-  own menu restores it or deletes it for good, and one button empties the
-  whole trash.
-- **⋮ menu**: Trash, Settings and About.
+  photo there is instant, not a copy. Open it from the ⋮ menu; tap an entry
+  to view the photo full-screen, its own menu restores it or deletes it for
+  good, and a button at the top empties the whole trash.
+- **⋮ menu**: Undo, Change folder, Trash, Settings and About.
 - **Settings**: light/dark theme, accent colour, language (English, Русский,
   Українська) and an update check.
 - **Private**: no account, no ads, no analytics. The app goes online only to

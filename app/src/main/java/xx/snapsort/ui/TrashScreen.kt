@@ -1,13 +1,19 @@
 package xx.snapsort.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -31,20 +37,19 @@ import xx.snapsort.Trash
 import java.text.DateFormat
 import java.util.Date
 
-/** What the trash holds, with restore and delete-for-good per item, and one button to empty it. */
+/** What the trash holds: restore/delete-for-good per item, a tap-to-view of the photo, and the total count. */
 @Composable
 fun TrashScreen(
     entries: List<Trash.Entry>?,
     busy: Boolean,
     onRestore: (Trash.Entry) -> Unit,
     onPurge: (Trash.Entry) -> Unit,
-    onEmpty: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     // By id: an entry object does not survive a reload or the activity being recreated.
     var purgeId by rememberSaveable { mutableStateOf<String?>(null) }
-    var confirmEmpty by rememberSaveable { mutableStateOf(false) }
+    var viewingId by rememberSaveable { mutableStateOf<String?>(null) }
 
     if (entries == null) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -57,40 +62,51 @@ fun TrashScreen(
         return
     }
 
+    val viewing = entries.firstOrNull { it.id == viewingId }
+    if (viewing != null) {
+        BackHandler { viewingId = null }
+        Box(modifier.fillMaxSize()) {
+            PhotoView(path = viewing.item.path, modifier = Modifier.fillMaxSize())
+            InverseIconButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.back),
+                onClick = { viewingId = null },
+                modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+            )
+        }
+        return
+    }
+
     val dateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
     Column(modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = formatSize(context, entries.sumOf { it.size }),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-            )
-            DialogConfirmButton(stringResource(R.string.empty_trash), danger = true, enabled = !busy) {
-                confirmEmpty = true
-            }
-        }
+        Text(
+            text = dotted(
+                labelValue(stringResource(R.string.trash_photo_count), formatCount(entries.size)),
+                formatSize(context, entries.sumOf { it.size }),
+            ),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        )
         HorizontalDivider()
         LazyColumn(Modifier.weight(1f)) {
             items(entries, key = { it.id }) { entry ->
                 Row(
-                    Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp, bottom = 10.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { viewingId = entry.id }
+                        .padding(start = 0.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = entry.item.name.orEmpty(),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Text(formatSize(context, entry.size), fontWeight = FontWeight.SemiBold)
-                        }
+                    PhotoThumbnail(path = entry.item.path, modifier = Modifier.size(64.dp))
+                    Column(
+                        Modifier.weight(1f).padding(start = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
+                        Text(
+                            text = entry.item.name.orEmpty(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                         Text(
                             text = entry.originalPath,
                             style = MaterialTheme.typography.bodySmall,
@@ -99,9 +115,9 @@ fun TrashScreen(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            text = dateFormat.format(Date(entry.deletedAt)),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = dotted(dateFormat.format(Date(entry.deletedAt)), formatSize(context, entry.size)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                     EntryMenu(
@@ -127,18 +143,6 @@ fun TrashScreen(
             },
         )
     }
-    if (confirmEmpty) {
-        ConfirmDialog(
-            title = stringResource(R.string.empty_trash),
-            message = stringResource(R.string.empty_trash_confirm) + ".",
-            confirmText = stringResource(R.string.delete),
-            onDismiss = { confirmEmpty = false },
-            onConfirm = {
-                confirmEmpty = false
-                onEmpty()
-            },
-        )
-    }
 }
 
 /** The actions on one trash entry, behind its ⋮ button. */
@@ -149,14 +153,20 @@ private fun EntryMenu(enabled: Boolean, onRestore: () -> Unit, onPurge: () -> Un
         MoreButton(onClick = { open = true }, enabled = enabled)
         AppMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.restore)) },
+                text = { Text(stringResource(R.string.restore), style = MaterialTheme.typography.titleLarge) },
                 onClick = {
                     open = false
                     onRestore()
                 },
             )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.delete_forever), color = MaterialTheme.colorScheme.error) },
+                text = {
+                    Text(
+                        stringResource(R.string.delete_forever),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                },
                 onClick = {
                     open = false
                     onPurge()

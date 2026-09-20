@@ -76,7 +76,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         ) {
             Text(
                 text = stringResource(R.string.setting_accent),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f),
             )
             AccentSwatch(accentAt(accentIndex), selected = false, onClick = { editing = Editing.ACCENT })
@@ -95,7 +95,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         ) {
             Text(
                 text = stringResource(R.string.setting_update_check),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f),
             )
             Switch(
@@ -160,8 +160,8 @@ private fun SettingRow(label: String, value: String, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        Text(label, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
 

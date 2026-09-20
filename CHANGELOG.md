@@ -3,6 +3,13 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- E: A stray status-bar inset no longer pushes the file name pill away from the buttons above it
+- F: Trash and Settings are now full screens instead of pop-up dialogs, each with a back button
+- F: The trash screen shows how many photos are in it, next to the total size
+- F: "Empty trash" moved to a red button at the top of the trash screen, now just labelled "Clear"
+- N: Tapping a photo in the trash shows it full-screen; each row also shows a small thumbnail
+- F: The trash list's file name is no longer cut short, and its size now sits next to the date instead
+- F: The trash screen's per-file menu and the whole Settings screen use bigger text
 - F: The photo no longer shows behind the status bar
 - F: Back/forward now use the theme's own light/dark-swapping colours instead of a fixed white, and sit lower, right above the file name and path
 - F: The file name and path pills now use the full width available instead of a fixed guess, and the path's front-truncation sizes itself to that width

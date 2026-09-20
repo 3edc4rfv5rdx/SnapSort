@@ -25,6 +25,7 @@
     <string name="cancel">Скасувати</string>
     <string name="delete_failed">Не вдалося видалити</string>
     <string name="trash_empty_state">Кошик порожній</string>
+    <string name="trash_photo_count">Фото</string>
     <string name="restore">Відновити</string>
     <string name="restored">Відновлено</string>
     <string name="restore_exists">На колишньому місці вже є об\'єкт з такою назвою</string>
@@ -32,6 +33,7 @@
     <string name="delete_forever">Видалити назавжди</string>
     <string name="empty_trash">Очистити кошик</string>
     <string name="empty_trash_confirm">Усе в кошику буде видалено назавжди</string>
+    <string name="trash_clear_action">Очистити</string>
     <string name="setting_theme">Тема</string>
     <string name="setting_accent">Колір</string>
     <string name="setting_language">Мова</string>
