@@ -34,6 +34,10 @@
     <string name="empty_trash">Очистити кошик</string>
     <string name="empty_trash_confirm">Усе в кошику буде видалено назавжди</string>
     <string name="trash_clear_action">Очистити</string>
+    <string name="disk_space">Місце на диску</string>
+    <string name="disk_space_free_of">%1$s вільно з %2$s</string>
+    <string name="disk_space_percent_used">зайнято %1$d%%</string>
+    <string name="ok">ОК</string>
     <string name="setting_theme">Тема</string>
     <string name="setting_accent">Колір</string>
     <string name="setting_language">Мова</string>

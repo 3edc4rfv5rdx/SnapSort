@@ -196,6 +196,15 @@ fun SwipeScreen(
                         )
                         DropdownMenuItem(
                             text = {
+                                Text(
+                                    stringResource(R.string.disk_space),
+                                    style = MaterialTheme.typography.titleLarge,
+                                )
+                            },
+                            onClick = { menuOpen = false; vm.openDiskSpace() },
+                        )
+                        DropdownMenuItem(
+                            text = {
                                 Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleLarge)
                             },
                             onClick = { menuOpen = false; settingsOpen = true },
@@ -234,6 +243,14 @@ fun SwipeScreen(
                 confirmEmptyTrash = false
                 vm.emptyTrash()
             },
+        )
+    }
+
+    if (vm.diskSpaceOpen) {
+        DiskSpaceDialog(
+            freeBytes = vm.diskFreeBytes,
+            totalBytes = vm.diskTotalBytes,
+            onDismiss = vm::closeDiskSpace,
         )
     }
 }

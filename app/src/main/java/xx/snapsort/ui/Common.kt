@@ -19,8 +19,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -64,6 +67,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -344,6 +348,54 @@ fun <T> ChoiceDialog(
             }
         },
         confirmButton = { DialogDismissButton(stringResource(R.string.cancel), onDismiss) },
+    )
+}
+
+// A fixed green/red pair, not the theme's accent or error colours: this bar
+// reads as a status meter (free vs. used), which should stay the same
+// regardless of which accent the user has picked.
+private val DiskFreeColor = Color(0xFF43A047)
+private val DiskUsedColor = Color(0xFFE53935)
+
+/** A free/used meter — [freeFraction] green, the rest red. Weights only need
+ * to stay in ratio, not sum to 1, so a fraction of exactly 0 or 1 is nudged
+ * off zero rather than special-cased, since [Modifier.weight] rejects zero. */
+@Composable
+fun DiskSpaceBar(freeFraction: Float, modifier: Modifier = Modifier) {
+    val free = freeFraction.coerceIn(0f, 1f)
+    Row(modifier.height(20.dp).clip(RoundedCornerShape(10.dp))) {
+        Box(Modifier.weight(free.coerceAtLeast(0.001f)).fillMaxHeight().background(DiskFreeColor))
+        Box(Modifier.weight((1f - free).coerceAtLeast(0.001f)).fillMaxHeight().background(DiskUsedColor))
+    }
+}
+
+/** Free/total space on the volume a folder lives on, as text plus a [DiskSpaceBar]. */
+@Composable
+fun DiskSpaceDialog(freeBytes: Long, totalBytes: Long, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val fraction = if (totalBytes > 0) freeBytes.toFloat() / totalBytes.toFloat() else 0f
+    val percentUsed = if (totalBytes > 0) (((totalBytes - freeBytes) * 100L) / totalBytes).toInt() else 0
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.disk_space)) },
+        text = {
+            Column {
+                Text(
+                    dotted(
+                        stringResource(
+                            R.string.disk_space_free_of,
+                            formatSize(context, freeBytes),
+                            formatSize(context, totalBytes),
+                        ),
+                        stringResource(R.string.disk_space_percent_used, percentUsed),
+                    ),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Spacer(Modifier.height(12.dp))
+                DiskSpaceBar(freeFraction = fraction, modifier = Modifier.fillMaxWidth())
+            }
+        },
+        confirmButton = { DialogDismissButton(stringResource(R.string.ok), onDismiss) },
     )
 }
 

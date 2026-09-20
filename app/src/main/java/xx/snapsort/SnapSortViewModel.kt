@@ -2,9 +2,12 @@ package xx.snapsort
 
 import android.app.Application
 import android.net.Uri
+import android.os.Environment
+import android.os.StatFs
 import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
@@ -57,6 +60,13 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     var trashOpen by mutableStateOf(false)
         private set
     var trashEntries by mutableStateOf<List<Trash.Entry>?>(null)
+        private set
+
+    var diskSpaceOpen by mutableStateOf(false)
+        private set
+    var diskFreeBytes by mutableLongStateOf(0L)
+        private set
+    var diskTotalBytes by mutableLongStateOf(0L)
         private set
 
     /** Every trash this session, most recent last; only [undo] pops it. */
@@ -214,6 +224,19 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     fun noticeShown() {
         notice = null
+    }
+
+    /** Space on the volume the current folder lives on, or the main storage volume before one is picked. */
+    fun openDiskSpace() {
+        val path = root?.path ?: Environment.getExternalStorageDirectory().path
+        val stat = StatFs(path)
+        diskTotalBytes = stat.totalBytes
+        diskFreeBytes = stat.availableBytes
+        diskSpaceOpen = true
+    }
+
+    fun closeDiskSpace() {
+        diskSpaceOpen = false
     }
 
     // ---------- Trash screen ----------
