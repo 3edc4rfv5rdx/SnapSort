@@ -2,12 +2,12 @@
 <resources>
     <string name="app_name">SnapSort</string>
     <string name="pick_folder">Вибрати теку</string>
-    <string name="pick_folder_hint">Виберіть теку з фотографіями. SnapSort пройде всіма фото всередині неї.</string>
+    <string name="pick_folder_hint">Виберіть теку з фото і відео. SnapSort пройде всіма файлами всередині неї.</string>
     <string name="folder_up">Вгору</string>
     <string name="folder_use_this">Вибрати цю теку</string>
     <string name="folder_no_subfolders">Усередині немає тек</string>
     <string name="need_storage_access">Потрібен доступ до файлів</string>
-    <string name="need_storage_access_hint">SnapSort читає і переміщує фото напряму, а не через системний вибір щоразу. Увімкніть «Дозволити доступ до всіх файлів» на наступному екрані.</string>
+    <string name="need_storage_access_hint">SnapSort читає і переміщує фото і відео напряму, а не через системний вибір щоразу. Увімкніть «Дозволити доступ до всіх файлів» на наступному екрані.</string>
     <string name="grant_access">Надати доступ</string>
     <string name="back">Назад</string>
     <string name="folder_unavailable">Ця тека більше недоступна</string>
@@ -16,15 +16,15 @@
     <string name="trash">Кошик</string>
     <string name="settings">Налаштування</string>
     <string name="about">Про програму</string>
-    <string name="scanning">Пошук фотографій</string>
+    <string name="scanning">Пошук фото і відео</string>
     <string name="scan_failed">Не вдалося просканувати теку</string>
-    <string name="no_photos">У цій теці немає фотографій</string>
+    <string name="no_photos">У цій теці немає фото і відео</string>
     <string name="photo_load_failed">Не вдалося завантажити це фото</string>
     <string name="play_video">Відтворити відео</string>
     <string name="no_video_player">Немає застосунку для відтворення відео</string>
     <string name="to_trash">До кошика</string>
-    <string name="previous_photo">Попереднє фото</string>
-    <string name="next_photo">Наступне фото</string>
+    <string name="previous_photo">Попередній файл</string>
+    <string name="next_photo">Наступний файл</string>
     <string name="undo">Скасувати</string>
     <string name="delete">Видалити</string>
     <string name="cancel">Скасувати</string>

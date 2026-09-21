@@ -2,12 +2,12 @@
 <resources>
     <string name="app_name">SnapSort</string>
     <string name="pick_folder">Choose folder</string>
-    <string name="pick_folder_hint">Pick the folder your photos are in. SnapSort goes through every photo under it.</string>
+    <string name="pick_folder_hint">Pick the folder your photos and videos are in. SnapSort goes through every file under it.</string>
     <string name="folder_up">Up</string>
     <string name="folder_use_this">Use this folder</string>
     <string name="folder_no_subfolders">No folders inside</string>
     <string name="need_storage_access">Needs file access</string>
-    <string name="need_storage_access_hint">SnapSort reads and moves photos directly, not through the system picker each time. Turn on \"Allow access to manage all files\" for it on the next screen.</string>
+    <string name="need_storage_access_hint">SnapSort reads and moves photos and videos directly, not through the system picker each time. Turn on \"Allow access to manage all files\" for it on the next screen.</string>
     <string name="grant_access">Grant access</string>
     <string name="back">Back</string>
     <string name="folder_unavailable">Can\'t open that folder anymore</string>
@@ -16,15 +16,15 @@
     <string name="trash">Trash</string>
     <string name="settings">Settings</string>
     <string name="about">About</string>
-    <string name="scanning">Looking for photos</string>
+    <string name="scanning">Looking for photos and videos</string>
     <string name="scan_failed">Could not scan the folder</string>
-    <string name="no_photos">No photos found in this folder</string>
+    <string name="no_photos">No photos or videos found in this folder</string>
     <string name="photo_load_failed">Could not load this photo</string>
     <string name="play_video">Play video</string>
     <string name="no_video_player">No app to play this video</string>
     <string name="to_trash">To trash</string>
-    <string name="previous_photo">Previous photo</string>
-    <string name="next_photo">Next photo</string>
+    <string name="previous_photo">Previous file</string>
+    <string name="next_photo">Next file</string>
     <string name="undo">Undo</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
