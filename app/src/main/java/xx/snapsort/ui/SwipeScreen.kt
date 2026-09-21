@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import xx.snapsort.R
 import xx.snapsort.SnapSortViewModel
+import xx.snapsort.pathOnVolume
 import xx.snapsort.rememberDeviceRotation
 
 /**
@@ -89,6 +90,7 @@ fun SwipeScreen(
                     emptying = vm.emptying,
                     emptiedCount = vm.emptiedCount,
                     emptyTotal = vm.emptyTotal,
+                    volumeRoot = vm.volumeRoot,
                     onRestore = vm::restoreFromTrash,
                     onPurge = vm::purgeFromTrash,
                     modifier = Modifier.weight(1f),
@@ -180,7 +182,7 @@ fun SwipeScreen(
                                 NamePill(name = entry.file.name, modifier = Modifier.fillMaxWidth())
                                 Spacer(Modifier.height(2.dp))
                                 PathPill(
-                                    path = entry.relativePath.ifBlank { "/" },
+                                    path = entry.file.parentFile?.let { pathOnVolume(it, vm.volumeRoot) }.orEmpty(),
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }

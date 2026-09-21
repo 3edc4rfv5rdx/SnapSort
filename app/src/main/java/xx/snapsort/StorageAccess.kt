@@ -37,3 +37,11 @@ fun storageRoots(context: Context): List<StorageRoot> =
  * photo into it is a rename on the same volume, never a copy. */
 fun volumeRootOf(context: Context, file: File): File? =
     context.getSystemService(StorageManager::class.java).getStorageVolume(file)?.directory
+
+/** [dir] as a path inside [volume] — "DCIM/Camera", not
+ * "/storage/emulated/0/DCIM/Camera". The full path when [dir] is the volume
+ * itself or lies outside it. */
+fun pathOnVolume(dir: File, volume: File?): String {
+    val prefix = volume?.path?.trimEnd('/')?.plus("/") ?: return dir.path
+    return if (dir.path.startsWith(prefix)) dir.path.removePrefix(prefix) else dir.path
+}

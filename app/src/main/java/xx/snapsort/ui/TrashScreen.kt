@@ -37,7 +37,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import xx.snapsort.R
 import xx.snapsort.Trash
+import xx.snapsort.pathOnVolume
 import xx.snapsort.rememberDeviceRotation
+import java.io.File
 import java.text.DateFormat
 import java.util.Date
 
@@ -49,6 +51,7 @@ fun TrashScreen(
     emptying: Boolean,
     emptiedCount: Int,
     emptyTotal: Int,
+    volumeRoot: File?,
     onRestore: (Trash.Entry) -> Unit,
     onPurge: (Trash.Entry) -> Unit,
     modifier: Modifier = Modifier,
@@ -123,7 +126,7 @@ fun TrashScreen(
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = entry.originalPath,
+                            text = pathOnVolume(entry.originalParent, volumeRoot),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,

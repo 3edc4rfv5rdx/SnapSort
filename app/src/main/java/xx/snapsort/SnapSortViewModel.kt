@@ -41,7 +41,8 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     /** The root of the volume [root] is on. The trash lives there, not under
-     * [root], so every folder picked on one volume shares the one trash. */
+     * [root], so every folder picked on one volume shares the one trash; and
+     * paths are shown relative to it. */
     var volumeRoot by mutableStateOf<File?>(null)
         private set
 
