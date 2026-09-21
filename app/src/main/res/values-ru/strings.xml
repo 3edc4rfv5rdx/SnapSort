@@ -20,6 +20,8 @@
     <string name="scan_failed">Не удалось просканировать папку</string>
     <string name="no_photos">В этой папке нет фотографий</string>
     <string name="photo_load_failed">Не удалось загрузить это фото</string>
+    <string name="play_video">Воспроизвести видео</string>
+    <string name="no_video_player">Нет приложения для воспроизведения видео</string>
     <string name="to_trash">В корзину</string>
     <string name="previous_photo">Предыдущее фото</string>
     <string name="next_photo">Следующее фото</string>

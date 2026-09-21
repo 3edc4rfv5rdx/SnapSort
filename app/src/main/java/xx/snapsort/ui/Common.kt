@@ -1,11 +1,17 @@
 package xx.snapsort.ui
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.media.ThumbnailUtils
 import android.text.format.Formatter
 import android.util.LruCache
+import android.util.Size
+import android.webkit.MimeTypeMap
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -37,6 +43,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -75,6 +83,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -83,6 +92,8 @@ import xx.snapsort.ACCENT_COUNT
 import xx.snapsort.Notice
 import xx.snapsort.R
 import xx.snapsort.ThemeMode
+import xx.snapsort.isVideo
+import java.io.File
 import java.io.IOException
 import java.text.NumberFormat
 import java.util.Locale
@@ -586,6 +597,7 @@ fun PhotoView(
         } else {
             Modifier.fillMaxSize()
         }
+        val video = isVideo(path)
         Box(frame, contentAlignment = Alignment.Center) {
             when (val s = state.value) {
                 PhotoState.Loading -> CircularProgressIndicator()
@@ -603,15 +615,55 @@ fun PhotoView(
                             translationY = offset.y
                         },
                 )
-                PhotoState.Failed -> Text(stringResource(R.string.photo_load_failed))
+                // A video with no still can still be played; the button says enough.
+                PhotoState.Failed -> if (!video) Text(stringResource(R.string.photo_load_failed))
             }
         }
+        if (video) {
+            val context = LocalContext.current
+            PlayButton(onClick = { playVideo(context, path) })
+        }
+    }
+}
+
+private val PLAY_BUTTON = 80.dp
+private val PLAY_ICON = 56.dp
+
+/** The one control a video gets here: playing it is another app's job. */
+@Composable
+private fun PlayButton(onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(PLAY_BUTTON),
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = Color.Black.copy(alpha = 0.55f),
+            contentColor = Color.White,
+        ),
+    ) {
+        Icon(Icons.Filled.PlayArrow, stringResource(R.string.play_video), Modifier.size(PLAY_ICON))
+    }
+}
+
+/** Hands the video at [path] to whichever player the user has, through the
+ * app's FileProvider: another app cannot read a plain path of ours. */
+private fun playVideo(context: Context, path: String) {
+    val file = File(path)
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
+    val type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension.lowercase()) ?: "video/*"
+    val intent = Intent(Intent.ACTION_VIEW)
+        .setDataAndType(uri, type)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    try {
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, R.string.no_video_player, Toast.LENGTH_SHORT).show()
     }
 }
 
 // ---------- Thumbnails ----------
 
 private const val THUMBNAIL_MAX_DIMENSION = 240
+private val THUMBNAIL_PLAY_ICON = 28.dp
 
 /** How far an embedded EXIF preview's proportions may stray from the photo's before
  * it is taken for a letterboxed one, whose black bars a cropped square would show. */
@@ -648,6 +700,14 @@ fun PhotoThumbnail(path: String, modifier: Modifier = Modifier) {
                 contentScale = ContentScale.Crop,
             )
         }
+        if (isVideo(path)) {
+            Icon(
+                Icons.Filled.PlayCircle,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.align(Alignment.Center).size(THUMBNAIL_PLAY_ICON),
+            )
+        }
     }
 }
 
@@ -657,6 +717,7 @@ fun PhotoThumbnail(path: String, modifier: Modifier = Modifier) {
  * otherwise a sampled decode of the photo itself.
  */
 private fun decodeThumbnail(path: String): Bitmap? {
+    if (isVideo(path)) return videoFrame(path, THUMBNAIL_MAX_DIMENSION)
     val exif = readExif(path)
     val embedded = exif?.takeIf { it.hasThumbnail() }?.thumbnailBitmap
     if (embedded != null) {
@@ -676,7 +737,17 @@ private fun decodeThumbnail(path: String): Bitmap? {
 private fun decodeBounds(path: String): BitmapFactory.Options =
     BitmapFactory.Options().apply { inJustDecodeBounds = true }.also { BitmapFactory.decodeFile(path, it) }
 
+/** A still from the video at [path], fitted within [maxDimension], already
+ * upright: the platform applies a video's rotation to the frames it hands out.
+ * Anything it cannot read is a missing still, not a crash. */
+private fun videoFrame(path: String, maxDimension: Int): Bitmap? = try {
+    ThumbnailUtils.createVideoThumbnail(File(path), Size(maxDimension, maxDimension), null)
+} catch (e: Exception) {
+    null
+}
+
 private fun decodeSampled(path: String, maxDimension: Int): Bitmap? {
+    if (isVideo(path)) return videoFrame(path, maxDimension)
     val bounds = decodeBounds(path)
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
     var sample = 1

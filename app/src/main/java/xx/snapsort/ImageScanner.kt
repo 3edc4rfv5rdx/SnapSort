@@ -3,12 +3,17 @@ package xx.snapsort
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
-/** One photo found under the granted folder. */
+/** One photo or video found under the granted folder. */
 class ImageEntry(val file: File, val relativePath: String)
 
 private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "heic", "heif", "gif", "bmp")
+private val VIDEO_EXTENSIONS = setOf("mp4", "m4v", "3gp", "webm", "mkv", "mov")
 
-/** Walks a plain folder tree looking for images. Dot-directories are skipped,
+/** Whether [path] names a video: sorted like a photo, shown as a still, played in another app.
+ * By extension, which a trashed file keeps, so this holds inside the trash too. */
+fun isVideo(path: String): Boolean = File(path).extension.lowercase() in VIDEO_EXTENSIONS
+
+/** Walks a plain folder tree looking for images and videos. Dot-directories are skipped,
  * which covers the app's own trash wherever a past root left it, so a photo
  * already thrown out never comes back into the queue, and machinery such as
  * .thumbnails never reaches it either. */
@@ -40,7 +45,7 @@ object ImageScanner {
                 if (child.name.startsWith(".")) continue
                 val childPath = if (path.isEmpty()) child.name else "$path/${child.name}"
                 walk(child, childPath, progress, checkCancel, found)
-            } else if (child.extension.lowercase() in IMAGE_EXTENSIONS) {
+            } else if (child.extension.lowercase().let { it in IMAGE_EXTENSIONS || it in VIDEO_EXTENSIONS }) {
                 found += ImageEntry(child, path)
                 progress.files.incrementAndGet()
             }

@@ -20,6 +20,8 @@
     <string name="scan_failed">Не вдалося просканувати теку</string>
     <string name="no_photos">У цій теці немає фотографій</string>
     <string name="photo_load_failed">Не вдалося завантажити це фото</string>
+    <string name="play_video">Відтворити відео</string>
+    <string name="no_video_player">Немає застосунку для відтворення відео</string>
     <string name="to_trash">До кошика</string>
     <string name="previous_photo">Попереднє фото</string>
     <string name="next_photo">Наступне фото</string>

@@ -20,6 +20,8 @@
     <string name="scan_failed">Could not scan the folder</string>
     <string name="no_photos">No photos found in this folder</string>
     <string name="photo_load_failed">Could not load this photo</string>
+    <string name="play_video">Play video</string>
+    <string name="no_video_player">No app to play this video</string>
     <string name="to_trash">To trash</string>
     <string name="previous_photo">Previous photo</string>
     <string name="next_photo">Next photo</string>
