@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- F: The trash's count reads "Files" instead of "Photos", since videos land there too
 - N: Videos are sorted along with photos: shown as a still from the middle with a play button that opens them in the phone's own player, and marked with a play sign in the trash
 - F: The last-viewed trash photo is highlighted in the theme's inverse colours instead of a faint accent tint
 - R: The trash is flat: each photo is stored as <deletion time>.<ext> with its record beside it, instead of a folder per photo, so opening and clearing it touch far fewer files

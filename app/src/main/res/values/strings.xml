@@ -30,7 +30,7 @@
     <string name="cancel">Cancel</string>
     <string name="delete_failed">Could not delete</string>
     <string name="trash_empty_state">The trash is empty</string>
-    <string name="trash_photo_count">Photos</string>
+    <string name="trash_photo_count">Files</string>
     <string name="restore">Restore</string>
     <string name="restored">Restored</string>
     <string name="restore_exists">Something with that name is already in the original place</string>
