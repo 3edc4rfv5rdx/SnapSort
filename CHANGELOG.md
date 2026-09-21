@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- I: README and the manifest's note on file access describe the app as it is now: videos, the in-app folder browser, the flat per-storage trash
 - F: Texts that now cover videos too say "photos and videos" or "file" instead of just "photos"
 - F: The trash's count reads "Files" instead of "Photos", since videos land there too
 - N: Videos are sorted along with photos: shown as a still from the middle with a play button that opens them in the phone's own player, and marked with a play sign in the trash

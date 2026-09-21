@@ -1,33 +1,44 @@
 # SnapSort
 
-**Go through your phone's photo clutter one at a time: keep it, or trash it.**
+**Go through your phone's photo and video clutter one at a time: keep it, or trash it.**
 
 ![Android 11+](https://img.shields.io/badge/Android-11%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Compose-7F52FF?logo=kotlin&logoColor=white)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/3edc4rfv5rdx/SnapSort)](https://github.com/3edc4rfv5rdx/SnapSort/releases/latest)
 
-SnapSort shows one photo at a time, full screen, from a folder you pick. A
-tap sends it to the app's own trash instead of deleting it outright; moving
-on to the next photo with the back/forward buttons is all it takes to
-keep one.
+SnapSort shows one photo or video at a time, full screen, from a folder you
+pick. A tap sends it to the app's own trash instead of deleting it outright;
+moving on to the next one with the back/forward buttons is all it takes to
+keep it.
 
 ## Features
 
-- **One photo at a time**: every image under the picked folder, in order.
-  The bin trashes the current photo; back and forward move to the previous
-  or next one, so nothing happens to a photo just by looking at it. Undo,
-  in the ⋮ menu, restores the last trashed photo to its place.
-- **Folder access**: pick any folder once, through the system's own folder
-  picker; SnapSort remembers it and goes through every photo in every
-  subfolder under it.
-- **Trash**: `Documents/SnapSort/.Trash` on the same storage, so moving a
-  photo there is instant, not a copy. Open it from the ⋮ menu; tap an entry
-  to view the photo full-screen, its own menu restores it or deletes it for
-  good, and a button at the top empties the whole trash.
-- **⋮ menu**: Undo, Change folder, Trash, Settings and About.
+- **One file at a time**: every photo and video under the picked folder, in
+  order, with its name, folder and place in the queue on screen. The bin
+  trashes the current one; back and forward (or a swipe) move to the previous
+  or next, so nothing happens to a file just by looking at it. Undo, in the
+  ⋮ menu, restores the last trashed one to its place.
+- **Viewing**: pinch to zoom and drag while zoomed. A landscape photo turns
+  with the phone even though the app itself stays portrait. A video shows a
+  still from its middle; the play button opens it in the phone's own player.
+- **Folder access**: pick any folder once, in SnapSort's own folder browser —
+  internal storage or an SD card. It needs "All files access" instead of the
+  system picker, which would ask for permission again on every change.
+  SnapSort remembers the folder, and optionally the position in it, and goes
+  through every subfolder except hidden ones.
+- **Trash**: `Documents/SnapSort/.Trash` at the root of each storage, so
+  moving a file there is instant, not a copy. Each file is kept under its
+  deletion time, with a record of its name and folder beside it. Open it from
+  the ⋮ menu: each entry shows a thumbnail, its original name and folder, and
+  when it was trashed; tap one to view it full-screen, and its own menu
+  restores it or deletes it for good. A button at the top empties the whole
+  trash with a progress bar. Anything left there for 30 days is deleted on
+  its own.
+- **⋮ menu**: Undo, Change folder, Trash, Disk space, Reset position,
+  Settings and About.
 - **Settings**: light/dark theme, accent colour, language (English, Русский,
-  Українська) and an update check.
+  Українська), remembering the position in a folder, and an update check.
 - **Private**: no account, no ads, no analytics. The app goes online only to
   check its own GitHub release for a newer version, and its settings are left
   out of cloud backups and device transfers.
