@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ThumbnailUtils
+import android.os.CancellationSignal
 import android.text.format.Formatter
 import android.util.LruCache
 import android.util.Size
@@ -85,9 +86,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import xx.snapsort.ACCENT_COUNT
 import xx.snapsort.Notice
 import xx.snapsort.R
@@ -498,7 +502,6 @@ fun CountPill(current: Int, total: Int, modifier: Modifier = Modifier) {
 
 // ---------- Photo viewer ----------
 
-private const val PHOTO_LOAD_TIMEOUT_MS = 3_000L
 private const val MAX_ZOOM = 5f
 private val SWIPE_THRESHOLD = 80.dp
 
@@ -531,8 +534,10 @@ fun PhotoView(
 ) {
     val state = produceState<PhotoState>(initialValue = PhotoState.Loading, key1 = path) {
         value = PhotoState.Loading
+        // No timeout: a local file either loads or fails on its own, and a
+        // long video's still can take seconds without anything being wrong.
         val bitmap = withContext(Dispatchers.IO) {
-            withTimeoutOrNull(PHOTO_LOAD_TIMEOUT_MS) { decodeSampled(path, 2048) }
+            withCancellationSignal { decodeSampled(path, 2048, it) }
         }
         value = if (bitmap != null) PhotoState.Loaded(bitmap) else PhotoState.Failed
     }
@@ -685,7 +690,7 @@ private val thumbnailCache = object : LruCache<String, Bitmap>((Runtime.getRunti
 fun PhotoThumbnail(path: String, modifier: Modifier = Modifier) {
     val bitmap by produceState<Bitmap?>(initialValue = thumbnailCache.get(path), key1 = path) {
         value = thumbnailCache.get(path)
-            ?: withContext(thumbnailDispatcher) { decodeThumbnail(path) }?.also { thumbnailCache.put(path, it) }
+            ?: withContext(thumbnailDispatcher) { withCancellationSignal { decodeThumbnail(path, it) } }?.also { thumbnailCache.put(path, it) }
     }
     Box(
         modifier
@@ -716,8 +721,8 @@ fun PhotoThumbnail(path: String, modifier: Modifier = Modifier) {
  * proportions — a few kilobytes read instead of the whole photo decoded —
  * otherwise a sampled decode of the photo itself.
  */
-private fun decodeThumbnail(path: String): Bitmap? {
-    if (isVideo(path)) return videoFrame(path, THUMBNAIL_MAX_DIMENSION)
+private fun decodeThumbnail(path: String, signal: CancellationSignal): Bitmap? {
+    if (isVideo(path)) return videoFrame(path, THUMBNAIL_MAX_DIMENSION, signal)
     val exif = readExif(path)
     val embedded = exif?.takeIf { it.hasThumbnail() }?.thumbnailBitmap
     if (embedded != null) {
@@ -731,7 +736,7 @@ private fun decodeThumbnail(path: String): Bitmap? {
             }
         }
     }
-    return decodeSampled(path, THUMBNAIL_MAX_DIMENSION)
+    return decodeSampled(path, THUMBNAIL_MAX_DIMENSION, signal)
 }
 
 private fun decodeBounds(path: String): BitmapFactory.Options =
@@ -739,15 +744,41 @@ private fun decodeBounds(path: String): BitmapFactory.Options =
 
 /** A still from the video at [path], fitted within [maxDimension], already
  * upright: the platform applies a video's rotation to the frames it hands out.
- * Anything it cannot read is a missing still, not a crash. */
-private fun videoFrame(path: String, maxDimension: Int): Bitmap? = try {
-    ThumbnailUtils.createVideoThumbnail(File(path), Size(maxDimension, maxDimension), null)
+ * Anything it cannot read, or a [signal] cancelled mid-way, is a missing
+ * still, not a crash. */
+private fun videoFrame(path: String, maxDimension: Int, signal: CancellationSignal): Bitmap? = try {
+    ThumbnailUtils.createVideoThumbnail(File(path), Size(maxDimension, maxDimension), signal)
 } catch (e: Exception) {
     null
 }
 
-private fun decodeSampled(path: String, maxDimension: Int): Bitmap? {
-    if (isVideo(path)) return videoFrame(path, maxDimension)
+/**
+ * Runs the blocking [block] with a [CancellationSignal] that fires the moment
+ * this coroutine is cancelled — a page turned or a row scrolled away — so a
+ * call that checks it gives up early instead of finishing for nobody.
+ * [BitmapFactory] has no such hook; a video still does.
+ */
+private suspend fun <T> withCancellationSignal(block: (CancellationSignal) -> T): T = coroutineScope {
+    val signal = CancellationSignal()
+    // Unconfined and undispatched: the cancel runs on whichever thread cancels
+    // this coroutine, not queued behind the very call it is meant to stop on a
+    // dispatcher whose few threads that call may be holding.
+    val watcher = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+        try {
+            awaitCancellation()
+        } finally {
+            signal.cancel()
+        }
+    }
+    try {
+        block(signal)
+    } finally {
+        watcher.cancel()
+    }
+}
+
+private fun decodeSampled(path: String, maxDimension: Int, signal: CancellationSignal): Bitmap? {
+    if (isVideo(path)) return videoFrame(path, maxDimension, signal)
     val bounds = decodeBounds(path)
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
     var sample = 1
