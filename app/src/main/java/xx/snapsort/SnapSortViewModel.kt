@@ -253,7 +253,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         runBusy(onFailure = Notice(R.string.restore_failed)) {
             val ok = withContext(Dispatchers.IO) {
                 val entry = Trash.get(r, slot.trashId) ?: return@withContext false
-                Trash.restore(r, entry) == Trash.RestoreResult.OK
+                Trash.restore(entry) == Trash.RestoreResult.OK
             }
             if (ok) {
                 images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
@@ -311,9 +311,8 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun restoreFromTrash(entry: Trash.Entry) {
-        val r = volumeRoot ?: return
         runBusy(onFailure = Notice(R.string.restore_failed)) {
-            val result = withContext(Dispatchers.IO) { Trash.restore(r, entry) }
+            val result = withContext(Dispatchers.IO) { Trash.restore(entry) }
             notice = Notice(
                 when (result) {
                     Trash.RestoreResult.OK -> R.string.restored
@@ -333,9 +332,8 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun purgeFromTrash(entry: Trash.Entry) {
-        val r = volumeRoot ?: return
         runBusy(onFailure = Notice(R.string.delete_failed)) {
-            val ok = withContext(Dispatchers.IO) { Trash.purge(r, entry) }
+            val ok = withContext(Dispatchers.IO) { Trash.purge(entry) }
             if (ok) {
                 forgetTrashedSlotOf(entry.id)
             } else {

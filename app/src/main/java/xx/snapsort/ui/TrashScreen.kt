@@ -140,7 +140,7 @@ fun TrashScreen(
                         verticalArrangement = Arrangement.spacedBy(0.dp),
                     ) {
                         Text(
-                            text = entry.item.name.orEmpty(),
+                            text = entry.name,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
@@ -171,7 +171,7 @@ fun TrashScreen(
     entries.firstOrNull { it.id == purgeId }?.let { entry ->
         ConfirmDialog(
             title = stringResource(R.string.delete_forever),
-            message = dotted(entry.item.name.orEmpty(), formatSize(context, entry.size)),
+            message = dotted(entry.name, formatSize(context, entry.size)),
             confirmText = stringResource(R.string.delete),
             onDismiss = { purgeId = null },
             onConfirm = {

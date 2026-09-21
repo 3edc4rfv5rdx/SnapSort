@@ -9,12 +9,14 @@ import java.util.concurrent.atomic.AtomicInteger
  * Every `root` here is the root of a storage volume, not the picked folder:
  * one trash per volume, whichever folder on it is being sorted.
  *
- *   <volume>/Documents/SnapSort/.Trash/<id>/<original name>   the item itself
- *   <volume>/Documents/SnapSort/.Trash/<id>.path               the record
+ *   <volume>/Documents/SnapSort/.Trash/<id>.<ext>   the item, renamed
+ *   <volume>/Documents/SnapSort/.Trash/<id>.path    the record
  *
- * The record holds the original parent folder's path (to restore to) and a
- * human-readable relative path (to show). It lives beside the slot rather
- * than inside it, so no name the item could have collides with it.
+ * The id is the moment of deletion in epoch milliseconds, with a "-n" suffix
+ * in the rare case two land on the same one, so no two items ever collide
+ * whatever their names were. The item keeps its extension so a file manager
+ * still sees a photo. The record holds the original parent folder's path and
+ * the original name, to restore it and to show it.
  */
 object Trash {
     /** Where the trash lives, relative to the volume root. */
@@ -28,8 +30,9 @@ object Trash {
     class Entry(
         val id: String,
         val item: File,
+        val record: File,
+        val name: String,
         val originalParent: File,
-        val originalPath: String,
         val deletedAt: Long,
         val size: Long,
     )
@@ -58,45 +61,38 @@ object Trash {
     fun moveToTrash(entry: ImageEntry, root: File): String? {
         val trash = dirFor(root)
         val parent = entry.file.parentFile ?: return null
-        val id = freeId(trash)
-        val slot = File(trash, id)
-        if (!slot.mkdirs()) return null
+        val name = entry.file.name
+        val id = freeId(trash, name)
         val record = File(trash, id + RECORD_SUFFIX)
         try {
-            record.writeText("${parent.absolutePath}\n${entry.relativePath}")
+            record.writeText("${parent.absolutePath}\n$name")
         } catch (e: IOException) {
             record.delete()
-            slot.delete()
             return null
         }
-        val moved = entry.file.renameTo(File(slot, entry.file.name))
-        if (!moved) {
+        if (!entry.file.renameTo(File(trash, itemName(id, name)))) {
             record.delete()
-            slot.delete()
             return null
         }
         return id
     }
 
-    /** What the trash holds, newest first. A slot with no readable record or item is left out. */
+    /** What the trash holds, newest first. A record with no readable item is left out. */
     fun list(root: File): List<Entry> {
         val trash = existingDir(root) ?: return emptyList()
-        return trash.listFiles { f -> f.isDirectory }.orEmpty()
-            .mapNotNull { slot -> readEntry(trash, slot) }
+        return trash.listFiles { f -> f.name.endsWith(RECORD_SUFFIX) }.orEmpty()
+            .mapNotNull { record -> readEntry(trash, record.name.removeSuffix(RECORD_SUFFIX)) }
             .sortedByDescending { it.deletedAt }
     }
 
-    /** One trash entry by id, or null if its slot or record is gone. */
+    /** One trash entry by id, or null if its item or record is gone. */
     fun get(root: File, id: String): Entry? {
         val trash = existingDir(root) ?: return null
-        val slot = File(trash, id).takeIf { it.isDirectory } ?: return null
-        return readEntry(trash, slot)
+        return readEntry(trash, id)
     }
 
-    private fun readEntry(trash: File, slot: File): Entry? {
-        val item = slot.listFiles()?.firstOrNull() ?: return null
-        val record = File(trash, slot.name + RECORD_SUFFIX)
-        if (!record.isFile) return null
+    private fun readEntry(trash: File, id: String): Entry? {
+        val record = File(trash, id + RECORD_SUFFIX)
         val text = try {
             record.readText()
         } catch (e: IOException) {
@@ -104,39 +100,43 @@ object Trash {
         }
         val lines = text.split("\n", limit = 2)
         val parent = lines.getOrNull(0)?.takeIf { it.isNotBlank() }?.let(::File) ?: return null
-        val originalPath = lines.getOrNull(1).orEmpty()
-        return Entry(slot.name, item, parent, originalPath, record.lastModified(), item.length())
+        val name = lines.getOrNull(1)?.takeIf { it.isNotBlank() } ?: return null
+        val item = File(trash, itemName(id, name)).takeIf { it.isFile } ?: return null
+        // The id is the deletion time; the record's mtime only for an id that
+        // is somehow not a number, since copying the trash would reset it.
+        val deletedAt = id.substringBefore('-').toLongOrNull() ?: record.lastModified()
+        return Entry(id, item, record, name, parent, deletedAt, item.length())
     }
 
-    /** Puts [entry] back where it came from, never over something that is there now. */
-    fun restore(root: File, entry: Entry): RestoreResult {
+    /** Puts [entry] back where it came from, under its own name, never over something that is there now. */
+    fun restore(entry: Entry): RestoreResult {
         if (!entry.originalParent.isDirectory && !entry.originalParent.mkdirs()) return RestoreResult.FAILED
-        val target = File(entry.originalParent, entry.item.name)
+        val target = File(entry.originalParent, entry.name)
         if (target.exists()) return RestoreResult.TARGET_EXISTS
         if (!entry.item.renameTo(target)) return RestoreResult.FAILED
-        forget(dirFor(root), entry.id)
+        entry.record.delete()
         return RestoreResult.OK
     }
 
     /** Deletes one item for good. False when it could not be deleted. */
-    fun purge(root: File, entry: Entry): Boolean {
+    fun purge(entry: Entry): Boolean {
         val ok = entry.item.delete()
-        if (ok) forget(dirFor(root), entry.id)
+        if (ok) entry.record.delete()
         return ok
     }
 
     /**
-     * Deletes the whole trash folder, stray files included. Item by item rather
-     * than one recursive delete, so [progress] can count them: a few hundred
-     * photos take seconds. Nothing to empty counts as done.
+     * Deletes the whole trash folder, stray files included. File by file rather
+     * than one recursive delete, so [progress] can count the photos: a few
+     * hundred take seconds. Nothing to empty counts as done.
      */
     fun empty(root: File, progress: EmptyProgress): Boolean {
         val trash = existingDir(root) ?: return true
-        val slots = trash.listFiles { f -> f.isDirectory }.orEmpty()
-        progress.total = slots.size
-        for (slot in slots) {
-            forget(trash, slot.name)
-            progress.done.incrementAndGet()
+        val files = trash.listFiles().orEmpty()
+        progress.total = files.count { !it.name.endsWith(RECORD_SUFFIX) }
+        for (file in files) {
+            file.deleteRecursively()
+            if (!file.name.endsWith(RECORD_SUFFIX)) progress.done.incrementAndGet()
         }
         return trash.deleteRecursively()
     }
@@ -147,19 +147,22 @@ object Trash {
      */
     fun purgeExpired(root: File, now: Long = System.currentTimeMillis()) {
         for (entry in list(root)) {
-            if (now - entry.deletedAt > MAX_AGE_MS) purge(root, entry)
+            if (now - entry.deletedAt > MAX_AGE_MS) purge(entry)
         }
     }
 
-    private fun forget(trash: File, id: String) {
-        File(trash, id).deleteRecursively()
-        File(trash, id + RECORD_SUFFIX).delete()
+    /** The item's file name: the id plus the original name's extension, if it has one. */
+    private fun itemName(id: String, name: String): String {
+        val ext = name.substringAfterLast('.', "")
+        return if (ext.isEmpty()) id else "$id.$ext"
     }
 
-    private fun freeId(trash: File, now: Long = System.currentTimeMillis()): String {
+    private fun freeId(trash: File, name: String, now: Long = System.currentTimeMillis()): String {
         var id = now.toString()
         var n = 1
-        while (File(trash, id).exists() || File(trash, id + RECORD_SUFFIX).exists()) {
+        // The item too, not just the record: a rename onto a stray file of the
+        // same name would silently replace it.
+        while (File(trash, id + RECORD_SUFFIX).exists() || File(trash, itemName(id, name)).exists()) {
             id = "$now-${n++}"
         }
         return id
