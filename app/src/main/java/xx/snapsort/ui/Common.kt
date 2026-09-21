@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.text.format.Formatter
+import android.util.LruCache
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -85,6 +86,7 @@ import xx.snapsort.ThemeMode
 import java.io.IOException
 import java.text.NumberFormat
 import java.util.Locale
+import kotlin.math.abs
 
 // ---------- Theme ----------
 
@@ -611,11 +613,27 @@ fun PhotoView(
 
 private const val THUMBNAIL_MAX_DIMENSION = 240
 
+/** How far an embedded EXIF preview's proportions may stray from the photo's before
+ * it is taken for a letterboxed one, whose black bars a cropped square would show. */
+private const val THUMBNAIL_ASPECT_TOLERANCE = 0.02f
+
+/** Thumbnail decodes share a few threads: a fast fling queues one per row it
+ * passes, and one still waiting when its row scrolls away is cancelled before
+ * it starts, instead of every row's decode running at once. */
+private val thumbnailDispatcher = Dispatchers.IO.limitedParallelism(3)
+
+/** Decoded thumbnails by path, bounded by bytes, so scrolling back or reopening
+ * the trash shows them at once. A trash item's path is unique to its slot. */
+private val thumbnailCache = object : LruCache<String, Bitmap>((Runtime.getRuntime().maxMemory() / 16).toInt()) {
+    override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+}
+
 /** A small square preview of the photo at [path], for a list row — the file [PhotoView] would open full-screen. */
 @Composable
 fun PhotoThumbnail(path: String, modifier: Modifier = Modifier) {
-    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = path) {
-        value = withContext(Dispatchers.IO) { decodeSampled(path, THUMBNAIL_MAX_DIMENSION) }
+    val bitmap by produceState<Bitmap?>(initialValue = thumbnailCache.get(path), key1 = path) {
+        value = thumbnailCache.get(path)
+            ?: withContext(thumbnailDispatcher) { decodeThumbnail(path) }?.also { thumbnailCache.put(path, it) }
     }
     Box(
         modifier
@@ -633,9 +651,33 @@ fun PhotoThumbnail(path: String, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * The camera's own preview from the file's EXIF block when it has the photo's
+ * proportions — a few kilobytes read instead of the whole photo decoded —
+ * otherwise a sampled decode of the photo itself.
+ */
+private fun decodeThumbnail(path: String): Bitmap? {
+    val exif = readExif(path)
+    val embedded = exif?.takeIf { it.hasThumbnail() }?.thumbnailBitmap
+    if (embedded != null) {
+        val bounds = decodeBounds(path)
+        // Both unrotated: the preview is stored the way the sensor wrote the photo.
+        if (bounds.outWidth > 0 && bounds.outHeight > 0 && embedded.height > 0) {
+            val photoAspect = bounds.outWidth.toFloat() / bounds.outHeight
+            val previewAspect = embedded.width.toFloat() / embedded.height
+            if (abs(photoAspect - previewAspect) <= photoAspect * THUMBNAIL_ASPECT_TOLERANCE) {
+                return rotated(embedded, exifDegrees(exif))
+            }
+        }
+    }
+    return decodeSampled(path, THUMBNAIL_MAX_DIMENSION)
+}
+
+private fun decodeBounds(path: String): BitmapFactory.Options =
+    BitmapFactory.Options().apply { inJustDecodeBounds = true }.also { BitmapFactory.decodeFile(path, it) }
+
 private fun decodeSampled(path: String, maxDimension: Int): Bitmap? {
-    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    BitmapFactory.decodeFile(path, bounds)
+    val bounds = decodeBounds(path)
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
     var sample = 1
     while (bounds.outWidth / (sample * 2) >= maxDimension || bounds.outHeight / (sample * 2) >= maxDimension) {
@@ -648,17 +690,23 @@ private fun decodeSampled(path: String, maxDimension: Int): Bitmap? {
 
 /** [BitmapFactory] never applies a file's own EXIF orientation; a camera writes a
  * landscape sensor buffer plus this tag rather than rotating the pixels itself. */
-private fun applyExifRotation(bitmap: Bitmap, path: String): Bitmap {
-    val degrees = try {
-        when (ExifInterface(path).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
-            ExifInterface.ORIENTATION_ROTATE_90 -> 90
-            ExifInterface.ORIENTATION_ROTATE_180 -> 180
-            ExifInterface.ORIENTATION_ROTATE_270 -> 270
-            else -> 0
-        }
-    } catch (e: IOException) {
-        0
+private fun applyExifRotation(bitmap: Bitmap, path: String): Bitmap = rotated(bitmap, exifDegrees(readExif(path)))
+
+private fun readExif(path: String): ExifInterface? = try {
+    ExifInterface(path)
+} catch (e: IOException) {
+    null
+}
+
+private fun exifDegrees(exif: ExifInterface?): Int =
+    when (exif?.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+        ExifInterface.ORIENTATION_ROTATE_90 -> 90
+        ExifInterface.ORIENTATION_ROTATE_180 -> 180
+        ExifInterface.ORIENTATION_ROTATE_270 -> 270
+        else -> 0
     }
+
+private fun rotated(bitmap: Bitmap, degrees: Int): Bitmap {
     if (degrees == 0) return bitmap
     val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
     return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)

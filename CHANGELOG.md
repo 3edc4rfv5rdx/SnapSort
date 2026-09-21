@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- F: Trash thumbnails keep up with fast scrolling: taken from the photo's own embedded preview when it has one, decoded a few at a time, and remembered once shown
 - N: Folders are chosen in the app's own browser now instead of the system picker, so Android no longer asks to allow access on every change; an SD card can be picked too
 - F: Looking into the trash no longer creates the SnapSort trash folder on storage when there is nothing to show
 - I: Dropped the androidx.documentfile dependency, unused since file access moved off SAF
