@@ -6,16 +6,18 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * The app's own trash: Android has no system trash for arbitrary files.
+ * Every `root` here is the root of a storage volume, not the picked folder:
+ * one trash per volume, whichever folder on it is being sorted.
  *
- *   <root>/Documents/SnapSort/.Trash/<id>/<original name>   the item itself
- *   <root>/Documents/SnapSort/.Trash/<id>.path               the record
+ *   <volume>/Documents/SnapSort/.Trash/<id>/<original name>   the item itself
+ *   <volume>/Documents/SnapSort/.Trash/<id>.path               the record
  *
  * The record holds the original parent folder's path (to restore to) and a
  * human-readable relative path (to show). It lives beside the slot rather
  * than inside it, so no name the item could have collides with it.
  */
 object Trash {
-    /** Where the trash lives, relative to the granted root. */
+    /** Where the trash lives, relative to the volume root. */
     const val DIR_PATH = "Documents/SnapSort/.Trash"
 
     /** How long the trash keeps a photo before deleting it for good. */

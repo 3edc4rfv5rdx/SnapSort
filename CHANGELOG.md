@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- E: The trash is one Documents/SnapSort/.Trash at the root of each storage, instead of a new one under every picked folder
 - F: Clearing the trash shows a progress bar with how many photos are deleted so far, instead of nothing happening until it is done
 - F: Trash thumbnails keep up with fast scrolling: taken from the photo's own embedded preview when it has one, decoded a few at a time, and remembered once shown
 - N: Folders are chosen in the app's own browser now instead of the system picker, so Android no longer asks to allow access on every change; an SD card can be picked too

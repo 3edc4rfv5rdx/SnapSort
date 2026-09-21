@@ -32,3 +32,8 @@ fun storageRoots(context: Context): List<StorageRoot> =
     context.getSystemService(StorageManager::class.java).storageVolumes.mapNotNull { volume ->
         volume.directory?.takeIf { it.isDirectory }?.let { StorageRoot(it, volume.getDescription(context)) }
     }
+
+/** The root of the volume [file] is on — where the trash goes, so moving a
+ * photo into it is a rename on the same volume, never a copy. */
+fun volumeRootOf(context: Context, file: File): File? =
+    context.getSystemService(StorageManager::class.java).getStorageVolume(file)?.directory
