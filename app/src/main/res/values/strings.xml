@@ -37,6 +37,7 @@
     <string name="empty_trash">Empty trash</string>
     <string name="empty_trash_confirm">Everything in the trash will be deleted for good</string>
     <string name="trash_clear_action">Clear</string>
+    <string name="trash_emptying">Deleted %1$s of %2$s</string>
     <string name="disk_space">Disk space</string>
     <string name="disk_space_used_of">%1$s used of %2$s</string>
     <string name="disk_space_free">Free</string>

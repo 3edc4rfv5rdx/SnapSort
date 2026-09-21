@@ -86,6 +86,9 @@ fun SwipeScreen(
                 TrashScreen(
                     entries = vm.trashEntries,
                     busy = vm.busy,
+                    emptying = vm.emptying,
+                    emptiedCount = vm.emptiedCount,
+                    emptyTotal = vm.emptyTotal,
                     onRestore = vm::restoreFromTrash,
                     onPurge = vm::purgeFromTrash,
                     modifier = Modifier.weight(1f),

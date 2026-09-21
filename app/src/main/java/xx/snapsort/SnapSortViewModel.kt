@@ -39,6 +39,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     var root by mutableStateOf<File?>(null)
         private set
+
     var images by mutableStateOf<List<ImageEntry>>(emptyList())
         private set
     var index by mutableIntStateOf(0)
@@ -59,6 +60,14 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     var trashOpen by mutableStateOf(false)
         private set
     var trashEntries by mutableStateOf<List<Trash.Entry>?>(null)
+        private set
+
+    /** [emptyTrash] is running; [emptiedCount] of [emptyTotal] items are gone so far. */
+    var emptying by mutableStateOf(false)
+        private set
+    var emptiedCount by mutableIntStateOf(0)
+        private set
+    var emptyTotal by mutableIntStateOf(0)
         private set
 
     var diskSpaceOpen by mutableStateOf(false)
@@ -331,13 +340,32 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     fun emptyTrash() {
         val r = root ?: return
         runBusy(onFailure = Notice(R.string.delete_failed)) {
-            val ok = withContext(Dispatchers.IO) { Trash.empty(r) }
-            if (ok) {
-                trashedStack.clear()
-            } else {
-                notice = Notice(R.string.delete_failed)
+            val progress = Trash.EmptyProgress()
+            emptiedCount = 0
+            emptyTotal = trashEntries?.size ?: 0
+            emptying = true
+            val ticker = viewModelScope.launch {
+                while (isActive) {
+                    emptiedCount = progress.done.get()
+                    if (progress.total > 0) emptyTotal = progress.total
+                    delay(PROGRESS_POLL_MS)
+                }
             }
-            reloadTrash()
+            try {
+                val ok = withContext(Dispatchers.IO) { Trash.empty(r, progress) }
+                if (ok) {
+                    trashedStack.clear()
+                } else {
+                    notice = Notice(R.string.delete_failed)
+                }
+            } finally {
+                ticker.cancel()
+                // Not the list from before the clear: its files are gone, so
+                // until the reload lands it would show rows with no photos.
+                trashEntries = null
+                emptying = false
+                reloadTrash()
+            }
         }
     }
 }

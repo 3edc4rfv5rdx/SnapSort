@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +46,9 @@ import java.util.Date
 fun TrashScreen(
     entries: List<Trash.Entry>?,
     busy: Boolean,
+    emptying: Boolean,
+    emptiedCount: Int,
+    emptyTotal: Int,
     onRestore: (Trash.Entry) -> Unit,
     onPurge: (Trash.Entry) -> Unit,
     modifier: Modifier = Modifier,
@@ -52,6 +58,10 @@ fun TrashScreen(
     var purgeId by rememberSaveable { mutableStateOf<String?>(null) }
     var viewingId by rememberSaveable { mutableStateOf<String?>(null) }
 
+    if (emptying) {
+        EmptyingState(emptiedCount, emptyTotal, modifier)
+        return
+    }
     if (entries == null) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         return
@@ -146,6 +156,27 @@ fun TrashScreen(
                 purgeId = null
                 onPurge(entry)
             },
+        )
+    }
+}
+
+/** Clearing the trash, in place of the list whose files are going away. */
+@Composable
+private fun EmptyingState(done: Int, total: Int, modifier: Modifier = Modifier) {
+    Column(
+        modifier.fillMaxSize().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        LinearProgressIndicator(
+            progress = { if (total > 0) done.toFloat() / total else 0f },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.trash_emptying, formatCount(done), formatCount(total)),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }

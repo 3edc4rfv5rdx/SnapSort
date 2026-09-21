@@ -2,6 +2,7 @@ package xx.snapsort
 
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * The app's own trash: Android has no system trash for arbitrary files.
@@ -32,6 +33,12 @@ object Trash {
     )
 
     enum class RestoreResult { OK, TARGET_EXISTS, FAILED }
+
+    /** How far [empty] has got, read from another thread while it runs. */
+    class EmptyProgress {
+        @Volatile var total = 0
+        val done = AtomicInteger(0)
+    }
 
     /** Documents/SnapSort/.Trash under [root], created if it is not there yet.
      * Only for the one caller that needs somewhere to put a photo — reading
@@ -116,8 +123,21 @@ object Trash {
         return ok
     }
 
-    /** Deletes the whole trash folder, stray files included. Nothing to empty counts as done. */
-    fun empty(root: File): Boolean = existingDir(root)?.deleteRecursively() ?: true
+    /**
+     * Deletes the whole trash folder, stray files included. Item by item rather
+     * than one recursive delete, so [progress] can count them: a few hundred
+     * photos take seconds. Nothing to empty counts as done.
+     */
+    fun empty(root: File, progress: EmptyProgress): Boolean {
+        val trash = existingDir(root) ?: return true
+        val slots = trash.listFiles { f -> f.isDirectory }.orEmpty()
+        progress.total = slots.size
+        for (slot in slots) {
+            forget(trash, slot.name)
+            progress.done.incrementAndGet()
+        }
+        return trash.deleteRecursively()
+    }
 
     /**
      * Deletes everything trashed more than [MAX_AGE_MS] ago. A root that has
