@@ -21,10 +21,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,9 +47,6 @@ import xx.snapsort.rememberDeviceRotation
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
-
-/** How strongly the last-viewed row is tinted with the accent. */
-private const val VIEWED_ROW_ALPHA = 0.2f
 
 /** What the trash holds: restore/delete-for-good per item, a tap-to-view of the photo, and the total count. */
 @Composable
@@ -120,48 +119,52 @@ fun TrashScreen(
         HorizontalDivider()
         LazyColumn(Modifier.weight(1f), state = listState) {
             items(entries, key = { it.id }) { entry ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(
-                            if (entry.id == viewedId) MaterialTheme.colorScheme.primary.copy(alpha = VIEWED_ROW_ALPHA)
-                            else Color.Transparent,
-                        )
-                        .clickable {
-                            viewingId = entry.id
-                            viewedId = entry.id
-                        }
-                        .padding(start = 0.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    PhotoThumbnail(path = entry.item.path, modifier = Modifier.size(64.dp))
-                    Column(
-                        Modifier.weight(1f).padding(start = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                // The last-viewed row in the theme's inverse pair, the same
+                // one the nav buttons use: dark on a light theme, light on a dark one.
+                val viewed = entry.id == viewedId
+                val rowColor = if (viewed) MaterialTheme.colorScheme.inverseSurface else Color.Transparent
+                val textColor = if (viewed) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurface
+                CompositionLocalProvider(LocalContentColor provides textColor) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(rowColor)
+                            .clickable {
+                                viewingId = entry.id
+                                viewedId = entry.id
+                            }
+                            .padding(start = 0.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = entry.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = pathOnVolume(entry.originalParent, volumeRoot),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = dotted(dateFormat.format(Date(entry.deletedAt)), formatSize(context, entry.size)),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                        PhotoThumbnail(path = entry.item.path, modifier = Modifier.size(64.dp))
+                        Column(
+                            Modifier.weight(1f).padding(start = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(0.dp),
+                        ) {
+                            Text(
+                                text = entry.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = pathOnVolume(entry.originalParent, volumeRoot),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textColor,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = dotted(dateFormat.format(Date(entry.deletedAt)), formatSize(context, entry.size)),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = textColor,
+                            )
+                        }
+                        EntryMenu(
+                            enabled = !busy,
+                            onRestore = { onRestore(entry) },
+                            onPurge = { purgeId = entry.id },
                         )
                     }
-                    EntryMenu(
-                        enabled = !busy,
-                        onRestore = { onRestore(entry) },
-                        onPurge = { purgeId = entry.id },
-                    )
                 }
                 HorizontalDivider()
             }
