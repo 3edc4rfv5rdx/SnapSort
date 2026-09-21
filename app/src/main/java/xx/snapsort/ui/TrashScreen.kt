@@ -1,6 +1,7 @@
 package xx.snapsort.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +45,9 @@ import xx.snapsort.rememberDeviceRotation
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
+
+/** How strongly the last-viewed row is tinted with the accent. */
+private const val VIEWED_ROW_ALPHA = 0.2f
 
 /** What the trash holds: restore/delete-for-good per item, a tap-to-view of the photo, and the total count. */
 @Composable
@@ -60,6 +66,12 @@ fun TrashScreen(
     // By id: an entry object does not survive a reload or the activity being recreated.
     var purgeId by rememberSaveable { mutableStateOf<String?>(null) }
     var viewingId by rememberSaveable { mutableStateOf<String?>(null) }
+    // The last photo opened full-screen, marked in the list on the way back so
+    // it is plain which one was looked at. The list's scroll lives up here
+    // too: the viewer replaces the list, and a state kept inside it would be
+    // gone by then, dropping the user back at the top.
+    var viewedId by rememberSaveable { mutableStateOf<String?>(null) }
+    val listState = rememberLazyListState()
 
     if (emptying) {
         EmptyingState(emptiedCount, emptyTotal, modifier)
@@ -106,12 +118,19 @@ fun TrashScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         )
         HorizontalDivider()
-        LazyColumn(Modifier.weight(1f)) {
+        LazyColumn(Modifier.weight(1f), state = listState) {
             items(entries, key = { it.id }) { entry ->
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clickable { viewingId = entry.id }
+                        .background(
+                            if (entry.id == viewedId) MaterialTheme.colorScheme.primary.copy(alpha = VIEWED_ROW_ALPHA)
+                            else Color.Transparent,
+                        )
+                        .clickable {
+                            viewingId = entry.id
+                            viewedId = entry.id
+                        }
                         .padding(start = 0.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

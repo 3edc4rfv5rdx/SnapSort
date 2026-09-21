@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- F: Back from a trash photo, the list stays where it was scrolled and the photo just viewed is highlighted
 - F: Paths under the photo and in the trash list read from the storage root on — DCIM/Camera, not "/" or /storage/emulated/0/…
 - E: The trash is one Documents/SnapSort/.Trash at the root of each storage, instead of a new one under every picked folder
 - F: Clearing the trash shows a progress bar with how many photos are deleted so far, instead of nothing happening until it is done
