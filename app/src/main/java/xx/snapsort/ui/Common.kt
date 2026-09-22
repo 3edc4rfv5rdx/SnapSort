@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ThumbnailUtils
 import android.os.CancellationSignal
+import android.text.format.DateFormat
 import android.text.format.Formatter
 import android.util.LruCache
 import android.util.Size
@@ -81,6 +82,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -99,9 +101,11 @@ import xx.snapsort.Notice
 import xx.snapsort.R
 import xx.snapsort.ThemeMode
 import xx.snapsort.isVideo
+import xx.snapsort.takenAt
 import java.io.File
 import java.io.IOException
 import java.text.NumberFormat
+import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
@@ -504,6 +508,38 @@ fun PathPill(path: String, modifier: Modifier = Modifier) {
             val shown = if (path.length > maxChars) "…" + path.takeLast(maxChars - 1) else path
             Text(shown, maxLines = 1, overflow = TextOverflow.Clip, style = MaterialTheme.typography.bodyLarge)
         }
+    }
+}
+
+/** When a file was taken and how big it is, as [FileInfoPill] shows them. */
+private class FileInfo(val takenAt: Long, val size: Long)
+
+/**
+ * The date and time the photo or video at [path] was taken, and its size.
+ * Nothing until both are read: the date means opening the file.
+ */
+@Composable
+fun FileInfoPill(path: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val info by produceState<FileInfo?>(initialValue = null, key1 = path) {
+        // Cleared first: produceState keeps its value across a new key, and the
+        // previous photo's date would otherwise stand under this one.
+        value = null
+        value = withContext(Dispatchers.IO) { File(path).let { FileInfo(takenAt(it), it.length()) } }
+    }
+    val shown = info ?: return
+    // Day, month and a two-digit year in the language's own order, and the time
+    // the way the phone is set to show it, 24-hour or not: kept short, since the
+    // path on the same line gets whatever this leaves.
+    val locale = LocalConfiguration.current.locales[0]
+    val date = DateFormat.format(DateFormat.getBestDateTimePattern(locale, "ddMMyy"), shown.takenAt)
+    val time = DateFormat.getTimeFormat(context).format(Date(shown.takenAt))
+    InfoPill(modifier) {
+        Text(
+            dotted("$date $time", formatSize(context, shown.size)),
+            maxLines = 1,
+            style = MaterialTheme.typography.bodyLarge,
+        )
     }
 }
 

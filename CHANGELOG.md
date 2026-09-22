@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- N: The date a photo or video was taken and its size show next to its folder, under the buttons
 ## v0.2.50 (2026-09-22)
 - F: Dialog text is a size larger
 - I: 06-Test.sh reruns only the tests, not the whole build, so a repeat run takes seconds

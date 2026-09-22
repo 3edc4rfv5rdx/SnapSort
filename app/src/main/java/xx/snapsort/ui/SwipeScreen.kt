@@ -203,10 +203,16 @@ fun SwipeScreen(
                             ) {
                                 NamePill(name = entry.file.name, modifier = Modifier.fillMaxWidth())
                                 Spacer(Modifier.height(2.dp))
-                                PathPill(
-                                    path = entry.file.parentFile?.let { pathOnVolume(it, vm.volumeRoot) }.orEmpty(),
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
+                                // Date and size share the path's line rather than adding
+                                // one: a third line would push the buttons up by its height.
+                                Row(Modifier.fillMaxWidth()) {
+                                    PathPill(
+                                        path = entry.file.parentFile?.let { pathOnVolume(it, vm.volumeRoot) }.orEmpty(),
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    FileInfoPill(path = entry.file.path)
+                                }
                             }
                         }
                     }
