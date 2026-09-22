@@ -202,6 +202,11 @@ fun noticeText(context: Context, notice: Notice): String {
 /** An icon button smaller than Material's 48dp, for rows that must stay low. */
 val COMPACT_BUTTON = 40.dp
 
+/** An icon button a size up from Material's 40dp: the full 48dp it takes up for touch anyway, so a row of them is
+ * no wider for it — with a glyph to match. */
+val LARGE_BUTTON = 48.dp
+val LARGE_ICON = 28.dp
+
 /**
  * An icon button with a round dark backdrop, for when it sits over a photo
  * of unknown colour rather than a plain surface it would otherwise
@@ -218,13 +223,13 @@ fun OverlayIconButton(
     IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier,
+        modifier = modifier.size(LARGE_BUTTON),
         colors = IconButtonDefaults.iconButtonColors(
             containerColor = Color.Black.copy(alpha = 0.55f),
             contentColor = Color.White,
         ),
     ) {
-        Icon(icon, contentDescription)
+        Icon(icon, contentDescription, Modifier.size(LARGE_ICON))
     }
 }
 
@@ -243,13 +248,13 @@ fun InverseIconButton(
 ) {
     FilledIconButton(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.size(LARGE_BUTTON),
         colors = IconButtonDefaults.filledIconButtonColors(
             containerColor = MaterialTheme.colorScheme.inverseSurface,
             contentColor = MaterialTheme.colorScheme.inverseOnSurface,
         ),
     ) {
-        Icon(icon, contentDescription)
+        Icon(icon, contentDescription, Modifier.size(LARGE_ICON))
     }
 }
 
