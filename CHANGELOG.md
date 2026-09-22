@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- F: With the phone on its side, the trash and arrow icons turn with the photo, and a swipe follows the photo's own left and right
 - F: Confirmation dialogs all say OK and Cancel; OK is red only where the step cannot be undone
 ## v0.1.45 (2026-09-21)
 - F: A slow photo or a long video's still is waited for instead of giving up after 3 seconds, and a video still no longer keeps loading after paging past it

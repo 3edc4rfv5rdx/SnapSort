@@ -68,6 +68,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -547,6 +548,9 @@ fun PhotoView(
     }
     var scale by remember(path) { mutableFloatStateOf(1f) }
     var offset by remember(path) { mutableStateOf(Offset.Zero) }
+    // Read inside the gesture loop, which only restarts on a new path: the
+    // phone can turn while one photo stays on screen.
+    val currentRotation by rememberUpdatedState(rotation)
 
     BoxWithConstraints(
         modifier.pointerInput(path) {
@@ -590,7 +594,15 @@ fun PhotoView(
                         }
                         event.changes.forEach { if (it.positionChanged()) it.consume() }
                     } else {
-                        swipeX += pan.x
+                        // Along the photo's own width, not the screen's: with
+                        // the phone on its side, "left" is what the viewer
+                        // sees as left, which is up or down on the glass.
+                        swipeX += when (currentRotation) {
+                            90 -> pan.y
+                            180 -> -pan.x
+                            270 -> -pan.y
+                            else -> pan.x
+                        }
                     }
                 } while (event.changes.any { it.pressed })
                 if (!transforming) {

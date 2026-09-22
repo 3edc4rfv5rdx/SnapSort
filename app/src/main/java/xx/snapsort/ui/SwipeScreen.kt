@@ -42,6 +42,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -166,6 +167,7 @@ fun SwipeScreen(
                                 )
                             }
                             BottomBar(
+                                rotation = rotation,
                                 canGoBack = vm.index > 0,
                                 canGoForward = vm.index < vm.images.lastIndex,
                                 busy = vm.busy,
@@ -381,6 +383,7 @@ private val ButtonIconColor = Color.Black
 
 @Composable
 private fun BottomBar(
+    rotation: Int,
     canGoBack: Boolean,
     canGoForward: Boolean,
     busy: Boolean,
@@ -393,6 +396,10 @@ private fun BottomBar(
     // behind it, so back/forward stay visible whichever theme is in force.
     val navContainer = MaterialTheme.colorScheme.inverseSurface
     val navContent = MaterialTheme.colorScheme.inverseOnSurface
+    // The glyphs turn with the photo, so they read upright however the phone
+    // is held, and the arrows point the way a swipe on that photo goes. The
+    // buttons themselves stay put: the layout is portrait whatever happens.
+    val glyph = Modifier.rotate(rotation.toFloat())
     Row(
         Modifier
             .fillMaxWidth()
@@ -408,7 +415,7 @@ private fun BottomBar(
                 containerColor = MaterialTheme.colorScheme.error,
                 contentColor = ButtonIconColor,
             ),
-        ) { Icon(Icons.Filled.Delete, stringResource(R.string.to_trash)) }
+        ) { Icon(Icons.Filled.Delete, stringResource(R.string.to_trash), modifier = glyph) }
 
         FilledIconButton(
             onClick = onBack,
@@ -424,7 +431,7 @@ private fun BottomBar(
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 stringResource(R.string.previous_photo),
-                modifier = Modifier.size(NAV_ICON),
+                modifier = glyph.size(NAV_ICON),
             )
         }
 
@@ -442,7 +449,7 @@ private fun BottomBar(
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
                 stringResource(R.string.next_photo),
-                modifier = Modifier.size(NAV_ICON),
+                modifier = glyph.size(NAV_ICON),
             )
         }
     }
