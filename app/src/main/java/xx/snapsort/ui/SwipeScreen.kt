@@ -196,7 +196,7 @@ fun SwipeScreen(
                                 // photo into that folder beside it.
                                 Column(
                                     Modifier.align(Alignment.CenterEnd).padding(end = 4.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(SORT_BUTTON_GAP),
                                 ) {
                                     for (folder in sortFolders) {
                                         // Already in that folder: nothing to move it into.
@@ -465,6 +465,10 @@ private fun ScanningState(text: String) {
 // The buttons at the top right — trash, folder, disk space, ⋮ — at the 48dp
 // an IconButton takes, their gaps and the row's own 4dp: how far the count
 // pill at the top left has to stay clear of them.
+// Well apart, unlike the row at the top: these sit under a thumb that moves
+// down the edge between them, and a mis-tap puts a photo in the wrong folder.
+private val SORT_BUTTON_GAP = 20.dp
+
 private val TOP_BUTTON_GAP = 4.dp
 private val TOP_BUTTONS_WIDTH = 4.dp + 48.dp * 4 + TOP_BUTTON_GAP * 3
 
