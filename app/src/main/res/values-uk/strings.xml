@@ -26,7 +26,6 @@
     <string name="previous_photo">Попередній файл</string>
     <string name="next_photo">Наступний файл</string>
     <string name="undo">Скасувати</string>
-    <string name="delete">Видалити</string>
     <string name="cancel">Скасувати</string>
     <string name="delete_failed">Не вдалося видалити</string>
     <string name="trash_empty_state">Кошик порожній</string>

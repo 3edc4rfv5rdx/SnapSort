@@ -26,7 +26,6 @@
     <string name="previous_photo">Previous file</string>
     <string name="next_photo">Next file</string>
     <string name="undo">Undo</string>
-    <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="delete_failed">Could not delete</string>
     <string name="trash_empty_state">The trash is empty</string>

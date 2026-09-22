@@ -316,20 +316,24 @@ fun AppMenu(
     )
 }
 
-/** Yes/no for something that cannot be undone. */
+/**
+ * OK/Cancel before a step worth a second thought: the message says what is
+ * about to happen, so the buttons can stay the same everywhere. [danger]
+ * paints OK red, for a step that cannot be undone.
+ */
 @Composable
 fun ConfirmDialog(
     title: String,
     message: String,
-    confirmText: String,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
+    danger: Boolean = true,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(message) },
-        confirmButton = { DialogConfirmButton(confirmText, danger = true, onClick = onConfirm) },
+        confirmButton = { DialogConfirmButton(stringResource(R.string.ok), danger = danger, onClick = onConfirm) },
         dismissButton = { DialogDismissButton(stringResource(R.string.cancel), onDismiss) },
     )
 }

@@ -271,7 +271,6 @@ fun SwipeScreen(
         ConfirmDialog(
             title = stringResource(R.string.empty_trash),
             message = stringResource(R.string.empty_trash_confirm) + ".",
-            confirmText = stringResource(R.string.delete),
             onDismiss = { confirmEmptyTrash = false },
             onConfirm = {
                 confirmEmptyTrash = false

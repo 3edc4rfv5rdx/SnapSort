@@ -175,7 +175,6 @@ fun TrashScreen(
         ConfirmDialog(
             title = stringResource(R.string.delete_forever),
             message = dotted(entry.name, formatSize(context, entry.size)),
-            confirmText = stringResource(R.string.delete),
             onDismiss = { purgeId = null },
             onConfirm = {
                 purgeId = null
