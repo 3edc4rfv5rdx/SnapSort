@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+## v0.2.50 (2026-09-22)
 - F: Dialog text is a size larger
 - I: 06-Test.sh reruns only the tests, not the whole build, so a repeat run takes seconds
 - E: A swipe made while a photo is going to the trash no longer jumps back once it is there
