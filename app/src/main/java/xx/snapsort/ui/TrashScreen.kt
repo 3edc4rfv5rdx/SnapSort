@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import xx.snapsort.R
 import xx.snapsort.Trash
+import xx.snapsort.TrashJob
 import xx.snapsort.pathOnVolume
 import xx.snapsort.rememberDeviceRotation
 import java.io.File
@@ -53,9 +54,9 @@ import java.util.Date
 fun TrashScreen(
     entries: List<Trash.Entry>?,
     busy: Boolean,
-    emptying: Boolean,
-    emptiedCount: Int,
-    emptyTotal: Int,
+    job: TrashJob?,
+    jobDone: Int,
+    jobTotal: Int,
     volumeRoot: File?,
     onRestore: (Trash.Entry) -> Unit,
     onPurge: (Trash.Entry) -> Unit,
@@ -72,8 +73,8 @@ fun TrashScreen(
     var viewedId by rememberSaveable { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
 
-    if (emptying) {
-        EmptyingState(emptiedCount, emptyTotal, modifier)
+    if (job != null) {
+        TrashJobState(job, jobDone, jobTotal, modifier)
         return
     }
     if (entries == null) {
@@ -184,9 +185,9 @@ fun TrashScreen(
     }
 }
 
-/** Clearing the trash, in place of the list whose files are going away. */
+/** Clearing or restoring the whole trash, in place of the list whose files are going away. */
 @Composable
-private fun EmptyingState(done: Int, total: Int, modifier: Modifier = Modifier) {
+private fun TrashJobState(job: TrashJob, done: Int, total: Int, modifier: Modifier = Modifier) {
     Column(
         modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -198,7 +199,11 @@ private fun EmptyingState(done: Int, total: Int, modifier: Modifier = Modifier) 
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = stringResource(R.string.trash_emptying, formatCount(done), formatCount(total)),
+            text = stringResource(
+                if (job == TrashJob.RESTORE) R.string.trash_restoring else R.string.trash_emptying,
+                formatCount(done),
+                formatCount(total),
+            ),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )

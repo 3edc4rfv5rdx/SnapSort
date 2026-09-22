@@ -39,6 +39,10 @@
     <string name="empty_trash_confirm">Усе в кошику буде видалено назавжди</string>
     <string name="trash_clear_action">Очистити</string>
     <string name="trash_emptying">Видалено %1$s з %2$s</string>
+    <string name="restore_all">Відновити всі</string>
+    <string name="restore_all_confirm">Усе з кошика повернеться на свої місця</string>
+    <string name="trash_restoring">Відновлено %1$s з %2$s</string>
+    <string name="restore_all_partial">Відновлено: %1$s, залишилось у кошику: %2$s</string>
     <string name="disk_space">Місце на диску</string>
     <string name="disk_space_used_of">Зайнято %1$s з %2$s</string>
     <string name="disk_space_free">Вільно</string>

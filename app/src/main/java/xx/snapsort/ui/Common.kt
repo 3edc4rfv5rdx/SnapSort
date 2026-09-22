@@ -193,7 +193,7 @@ fun labelValue(label: String, value: Any): String = "$label: $value"
 fun dotted(vararg parts: String?): String = parts.filterNot { it.isNullOrEmpty() }.joinToString("  ·  ")
 
 fun noticeText(context: Context, notice: Notice): String {
-    val head = context.getString(notice.text)
+    val head = context.getString(notice.text, *notice.args.toTypedArray())
     return if (notice.detail.isNullOrBlank()) head else labelValue(head, notice.detail)
 }
 

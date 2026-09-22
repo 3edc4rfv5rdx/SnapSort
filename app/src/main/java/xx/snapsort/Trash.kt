@@ -39,8 +39,8 @@ object Trash {
 
     enum class RestoreResult { OK, TARGET_EXISTS, FAILED }
 
-    /** How far [empty] has got, read from another thread while it runs. */
-    class EmptyProgress {
+    /** How far [empty] or [restoreAll] has got, read from another thread while it runs. */
+    class Progress {
         @Volatile var total = 0
         val done = AtomicInteger(0)
     }
@@ -118,6 +118,25 @@ object Trash {
         return RestoreResult.OK
     }
 
+    /** The ids [restoreAll] put back, and how many it could not. */
+    class RestoreAllResult(val restoredIds: List<String>, val notRestored: Int)
+
+    /**
+     * Puts everything in the trash of [root] back, one [restore] at a time: an
+     * item whose place is taken, or that will not move, stays in the trash and
+     * is counted instead of stopping the rest.
+     */
+    fun restoreAll(root: File, progress: Progress): RestoreAllResult {
+        val entries = list(root)
+        progress.total = entries.size
+        val restored = mutableListOf<String>()
+        for (entry in entries) {
+            if (restore(entry) == RestoreResult.OK) restored += entry.id
+            progress.done.incrementAndGet()
+        }
+        return RestoreAllResult(restored, entries.size - restored.size)
+    }
+
     /** Deletes one item for good. False when it could not be deleted. */
     fun purge(entry: Entry): Boolean {
         val ok = entry.item.delete()
@@ -130,7 +149,7 @@ object Trash {
      * than one recursive delete, so [progress] can count the photos: a few
      * hundred take seconds. Nothing to empty counts as done.
      */
-    fun empty(root: File, progress: EmptyProgress): Boolean {
+    fun empty(root: File, progress: Progress): Boolean {
         val trash = existingDir(root) ?: return true
         val files = trash.listFiles().orEmpty()
         progress.total = files.count { !it.name.endsWith(RECORD_SUFFIX) }

@@ -39,6 +39,10 @@
     <string name="empty_trash_confirm">Всё в корзине будет удалено навсегда</string>
     <string name="trash_clear_action">Очистить</string>
     <string name="trash_emptying">Удалено %1$s из %2$s</string>
+    <string name="restore_all">Восстановить все</string>
+    <string name="restore_all_confirm">Всё из корзины вернётся на свои места</string>
+    <string name="trash_restoring">Восстановлено %1$s из %2$s</string>
+    <string name="restore_all_partial">Восстановлено: %1$s, осталось в корзине: %2$s</string>
     <string name="disk_space">Место на диске</string>
     <string name="disk_space_used_of">Занято %1$s из %2$s</string>
     <string name="disk_space_free">Свободно</string>

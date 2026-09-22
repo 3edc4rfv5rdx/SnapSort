@@ -19,10 +19,17 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import xx.snapsort.ui.formatCount
 import java.io.File
 
-/** A line for the snackbar: a string resource, and an optional raw detail such as an exception message. */
-class Notice(@param:StringRes val text: Int, val detail: String? = null)
+/**
+ * A line for the snackbar: a string resource with its format [args], if it
+ * has any, and an optional raw detail such as an exception message.
+ */
+class Notice(@param:StringRes val text: Int, val detail: String? = null, val args: List<Any> = emptyList())
+
+/** What a whole-trash job in flight is doing, for the progress it shows in place of the list. */
+enum class TrashJob { EMPTY, RESTORE }
 
 /**
  * One photo sent to the trash this session, and where it stood in [SnapSortViewModel.images]
@@ -68,12 +75,12 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     var trashEntries by mutableStateOf<List<Trash.Entry>?>(null)
         private set
 
-    /** [emptyTrash] is running; [emptiedCount] of [emptyTotal] items are gone so far. */
-    var emptying by mutableStateOf(false)
+    /** [emptyTrash] or [restoreAllFromTrash] is running; [trashJobDone] of [trashJobTotal] items are done so far. */
+    var trashJob by mutableStateOf<TrashJob?>(null)
         private set
-    var emptiedCount by mutableIntStateOf(0)
+    var trashJobDone by mutableIntStateOf(0)
         private set
-    var emptyTotal by mutableIntStateOf(0)
+    var trashJobTotal by mutableIntStateOf(0)
         private set
 
     var diskSpaceOpen by mutableStateOf(false)
@@ -345,31 +352,67 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     fun emptyTrash() {
         val r = volumeRoot ?: return
-        runBusy(onFailure = Notice(R.string.delete_failed)) {
-            val progress = Trash.EmptyProgress()
-            emptiedCount = 0
-            emptyTotal = trashEntries?.size ?: 0
-            emptying = true
+        runTrashJob(TrashJob.EMPTY, onFailure = Notice(R.string.delete_failed)) { progress ->
+            val ok = withContext(Dispatchers.IO) { Trash.empty(r, progress) }
+            if (ok) {
+                trashedStack.clear()
+            } else {
+                notice = Notice(R.string.delete_failed)
+            }
+        }
+    }
+
+    /**
+     * Puts the whole trash back. A photo trashed this session goes back into
+     * the queue too, where it left it — latest first, the order a run of
+     * [undo]s would take — and the one on screen stays on screen.
+     */
+    fun restoreAllFromTrash() {
+        val r = volumeRoot ?: return
+        runTrashJob(TrashJob.RESTORE, onFailure = Notice(R.string.restore_failed)) { progress ->
+            val result = withContext(Dispatchers.IO) { Trash.restoreAll(r, progress) }
+            val restored = result.restoredIds.toSet()
+            val onScreen = current
+            val queue = images.toMutableList()
+            for (slot in trashedStack.reversed()) {
+                if (slot.trashId in restored) queue.add(slot.index.coerceIn(0, queue.size), slot.entry)
+            }
+            trashedStack.removeAll { it.trashId in restored }
+            images = queue
+            if (onScreen != null) moveTo(queue.indexOf(onScreen).coerceAtLeast(0))
+            notice = if (result.notRestored == 0) {
+                Notice(R.string.restored, formatCount(restored.size))
+            } else {
+                Notice(
+                    R.string.restore_all_partial,
+                    args = listOf(formatCount(restored.size), formatCount(result.notRestored)),
+                )
+            }
+        }
+    }
+
+    /** One whole-trash [job] under [runBusy], its progress polled into [trashJobDone]/[trashJobTotal]. */
+    private fun runTrashJob(job: TrashJob, onFailure: Notice, block: suspend (Trash.Progress) -> Unit) {
+        runBusy(onFailure) {
+            val progress = Trash.Progress()
+            trashJobDone = 0
+            trashJobTotal = trashEntries?.size ?: 0
+            trashJob = job
             val ticker = viewModelScope.launch {
                 while (isActive) {
-                    emptiedCount = progress.done.get()
-                    if (progress.total > 0) emptyTotal = progress.total
+                    trashJobDone = progress.done.get()
+                    if (progress.total > 0) trashJobTotal = progress.total
                     delay(PROGRESS_POLL_MS)
                 }
             }
             try {
-                val ok = withContext(Dispatchers.IO) { Trash.empty(r, progress) }
-                if (ok) {
-                    trashedStack.clear()
-                } else {
-                    notice = Notice(R.string.delete_failed)
-                }
+                block(progress)
             } finally {
                 ticker.cancel()
-                // Not the list from before the clear: its files are gone, so
+                // Not the list from before the job: its files have moved, so
                 // until the reload lands it would show rows with no photos.
                 trashEntries = null
-                emptying = false
+                trashJob = null
                 reloadTrash()
             }
         }

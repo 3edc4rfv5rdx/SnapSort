@@ -17,12 +17,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Button
@@ -73,6 +75,7 @@ fun SwipeScreen(
     // remember would drop the user back on the photo screen mid-Settings.
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var confirmEmptyTrash by remember { mutableStateOf(false) }
+    var confirmRestoreAll by remember { mutableStateOf(false) }
 
     Box(modifier.fillMaxSize()) {
         when {
@@ -80,6 +83,21 @@ fun SwipeScreen(
                 title = stringResource(R.string.trash),
                 onBack = vm::closeTrash,
                 actions = {
+                    // An icon, not a labelled button like "Clear": both
+                    // labels side by side leave the title no room on a
+                    // phone-width screen in Russian or Ukrainian.
+                    IconButton(
+                        onClick = { confirmRestoreAll = true },
+                        enabled = !vm.busy && !vm.trashEntries.isNullOrEmpty(),
+                        modifier = Modifier.size(LARGE_BUTTON),
+                    ) {
+                        Icon(
+                            Icons.Filled.RestoreFromTrash,
+                            stringResource(R.string.restore_all),
+                            Modifier.size(LARGE_ICON),
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
                     DialogConfirmButton(
                         text = stringResource(R.string.trash_clear_action),
                         danger = true,
@@ -90,9 +108,9 @@ fun SwipeScreen(
                 TrashScreen(
                     entries = vm.trashEntries,
                     busy = vm.busy,
-                    emptying = vm.emptying,
-                    emptiedCount = vm.emptiedCount,
-                    emptyTotal = vm.emptyTotal,
+                    job = vm.trashJob,
+                    jobDone = vm.trashJobDone,
+                    jobTotal = vm.trashJobTotal,
                     volumeRoot = vm.volumeRoot,
                     onRestore = vm::restoreFromTrash,
                     onPurge = vm::purgeFromTrash,
@@ -303,6 +321,20 @@ fun SwipeScreen(
             onConfirm = {
                 confirmEmptyTrash = false
                 vm.emptyTrash()
+            },
+        )
+    }
+
+    if (confirmRestoreAll) {
+        ConfirmDialog(
+            title = stringResource(R.string.restore_all),
+            message = stringResource(R.string.restore_all_confirm) + ".\n" +
+                labelValue(stringResource(R.string.trash_photo_count), formatCount(vm.trashEntries?.size ?: 0)),
+            danger = false,
+            onDismiss = { confirmRestoreAll = false },
+            onConfirm = {
+                confirmRestoreAll = false
+                vm.restoreAllFromTrash()
             },
         )
     }
