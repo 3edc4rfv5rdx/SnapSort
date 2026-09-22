@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- N: The disk-space dialog shows what the trash holds, space that comes back once it is emptied, and how much this session threw out
 - N: The date a photo or video was taken and its size show next to its folder, under the buttons
 ## v0.2.50 (2026-09-22)
 - F: Dialog text is a size larger

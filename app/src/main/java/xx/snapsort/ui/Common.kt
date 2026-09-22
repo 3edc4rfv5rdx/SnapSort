@@ -84,6 +84,7 @@ import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -409,9 +410,21 @@ fun DiskSpaceBar(usedFraction: Float, modifier: Modifier = Modifier) {
     }
 }
 
-/** Used/total space on the volume a folder lives on, as text plus a [DiskSpaceBar]. */
+/**
+ * Used/total space on the volume a folder lives on, as text plus a [DiskSpaceBar];
+ * then what that volume's trash holds ([trashCount] null: no folder, so no trash
+ * to speak of) and how much of it this session threw out.
+ */
 @Composable
-fun DiskSpaceDialog(freeBytes: Long, totalBytes: Long, onDismiss: () -> Unit) {
+fun DiskSpaceDialog(
+    freeBytes: Long,
+    totalBytes: Long,
+    trashCount: Int?,
+    trashBytes: Long,
+    sessionCount: Int,
+    sessionBytes: Long,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     val usedBytes = totalBytes - freeBytes
     val usedFraction = if (totalBytes > 0) usedBytes.toFloat() / totalBytes.toFloat() else 0f
@@ -443,11 +456,34 @@ fun DiskSpaceDialog(freeBytes: Long, totalBytes: Long, onDismiss: () -> Unit) {
                     labelValue(stringResource(R.string.disk_space_free), formatSize(context, freeBytes)),
                     style = dialogBodyStyle(),
                 )
+                if (trashCount != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        labelValue(stringResource(R.string.disk_space_in_trash), filesAndSize(trashCount, trashBytes)),
+                        style = dialogBodyStyle(),
+                    )
+                }
+                if (sessionCount > 0) {
+                    Text(
+                        labelValue(
+                            stringResource(R.string.disk_space_this_session),
+                            filesAndSize(sessionCount, sessionBytes),
+                        ),
+                        style = dialogBodyStyle(),
+                    )
+                }
             }
         },
         confirmButton = { DialogDismissButton(stringResource(R.string.ok), onDismiss) },
     )
 }
+
+/** "137 files  ·  1.2 GB", the count in the language's own plural form. */
+@Composable
+private fun filesAndSize(count: Int, bytes: Long): String = dotted(
+    pluralStringResource(R.plurals.file_count, count, formatCount(count)),
+    formatSize(LocalContext.current, bytes),
+)
 
 /** One accent colour, ringed when it is the one in force. */
 @Composable

@@ -34,8 +34,9 @@ enum class TrashJob { EMPTY, RESTORE }
 /**
  * One photo sent to the trash this session, and where it stood in [SnapSortViewModel.images]
  * before it was spliced out — [SnapSortViewModel.undo] needs both to put it back in the same spot.
+ * [size] is what it counted for in the session's tally, to take back out if it comes back.
  */
-private data class TrashedSlot(val index: Int, val entry: ImageEntry, val trashId: String)
+private data class TrashedSlot(val index: Int, val entry: ImageEntry, val trashId: String, val size: Long)
 
 private const val PROGRESS_POLL_MS = 200L
 
@@ -88,6 +89,22 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     var diskFreeBytes by mutableLongStateOf(0L)
         private set
     var diskTotalBytes by mutableLongStateOf(0L)
+        private set
+
+    /** What the trash of the current volume holds, read when the disk-space dialog opens; null without a folder. */
+    var trashCount by mutableStateOf<Int?>(null)
+        private set
+    var trashBytes by mutableLongStateOf(0L)
+        private set
+
+    /**
+     * Photos sent to the trash since the app started, less those put back from
+     * it — by undo or from the trash screen. Emptying the trash does not take
+     * them off: they were still thrown out, the space is only now given back.
+     */
+    var sessionTrashedCount by mutableIntStateOf(0)
+        private set
+    var sessionTrashedBytes by mutableLongStateOf(0L)
         private set
 
     /** Every trash this session, most recent last; only [undo] pops it. */
@@ -246,10 +263,13 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         val r = volumeRoot ?: return
         val at = index
         runBusy(onFailure = Notice(R.string.delete_failed)) {
-            val trashId = withContext(Dispatchers.IO) { Trash.moveToTrash(entry, r) }
+            // Measured before the move: afterwards the file is under another name.
+            val (size, trashId) = withContext(Dispatchers.IO) { entry.file.length() to Trash.moveToTrash(entry, r) }
             if (trashId != null) {
                 images = images.toMutableList().also { it.removeAt(at) }
-                trashedStack.addLast(TrashedSlot(at, entry, trashId))
+                trashedStack.addLast(TrashedSlot(at, entry, trashId, size))
+                sessionTrashedCount++
+                sessionTrashedBytes += size
                 moveTo(at.coerceAtMost((images.size - 1).coerceAtLeast(0)))
             } else {
                 notice = Notice(R.string.delete_failed)
@@ -267,6 +287,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             val result = withContext(Dispatchers.IO) { Trash.get(r, slot.trashId)?.let(Trash::restore) }
             when (result) {
                 Trash.RestoreResult.OK -> {
+                    uncount(slot)
                     images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
                     moveTo(slot.index.coerceIn(0, images.lastIndex))
                 }
@@ -287,13 +308,24 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         notice = null
     }
 
-    /** Space on the volume the current folder lives on, or the main storage volume before one is picked. */
+    /**
+     * Space on the volume the current folder lives on, or the main storage
+     * volume before one is picked — and what that volume's trash holds, which
+     * is space that comes back only once the trash is emptied.
+     */
     fun openDiskSpace() {
         val path = root?.path ?: Environment.getExternalStorageDirectory().path
-        val stat = StatFs(path)
-        diskTotalBytes = stat.totalBytes
-        diskFreeBytes = stat.availableBytes
-        diskSpaceOpen = true
+        val r = volumeRoot
+        viewModelScope.launch {
+            val stat = StatFs(path)
+            // Listed off the main thread: every entry is a record file to read.
+            val trash = if (r == null) null else withContext(Dispatchers.IO) { Trash.list(r) }
+            diskTotalBytes = stat.totalBytes
+            diskFreeBytes = stat.availableBytes
+            trashCount = trash?.size
+            trashBytes = trash?.sumOf { it.size } ?: 0L
+            diskSpaceOpen = true
+        }
     }
 
     fun closeDiskSpace() {
@@ -319,6 +351,12 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** [slot]'s photo is out of the trash again: it no longer counts as thrown out this session. */
+    private fun uncount(slot: TrashedSlot) {
+        sessionTrashedCount--
+        sessionTrashedBytes -= slot.size
+    }
+
     /**
      * The trash-screen entry may be the very photo [undo] on the swipe screen
      * would otherwise restore; dropping its slot here keeps that undo from
@@ -342,6 +380,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 val slot = trashedStack.firstOrNull { it.trashId == entry.id }
                 forgetTrashedSlotOf(entry.id)
                 if (slot != null) {
+                    uncount(slot)
                     // Spliced in ahead of the photo on screen, it would shift
                     // that one along and show its neighbour on the way back.
                     val onScreen = current
@@ -390,7 +429,10 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             val onScreen = current
             val queue = images.toMutableList()
             for (slot in trashedStack.reversed()) {
-                if (slot.trashId in restored) queue.add(slot.index.coerceIn(0, queue.size), slot.entry)
+                if (slot.trashId in restored) {
+                    uncount(slot)
+                    queue.add(slot.index.coerceIn(0, queue.size), slot.entry)
+                }
             }
             trashedStack.removeAll { it.trashId in restored }
             images = queue

@@ -349,6 +349,10 @@ fun SwipeScreen(
         DiskSpaceDialog(
             freeBytes = vm.diskFreeBytes,
             totalBytes = vm.diskTotalBytes,
+            trashCount = vm.trashCount,
+            trashBytes = vm.trashBytes,
+            sessionCount = vm.sessionTrashedCount,
+            sessionBytes = vm.sessionTrashedBytes,
             onDismiss = vm::closeDiskSpace,
         )
     }

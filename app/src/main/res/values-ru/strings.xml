@@ -47,6 +47,14 @@
     <string name="disk_space_used_of">Занято %1$s из %2$s</string>
     <string name="disk_space_free">Свободно</string>
     <string name="disk_space_percent">%1$d%%</string>
+    <string name="disk_space_in_trash">В корзине</string>
+    <string name="disk_space_this_session">Выброшено за сеанс</string>
+    <plurals name="file_count">
+        <item quantity="one">%1$s файл</item>
+        <item quantity="few">%1$s файла</item>
+        <item quantity="many">%1$s файлов</item>
+        <item quantity="other">%1$s файла</item>
+    </plurals>
     <string name="ok">ОК</string>
     <string name="setting_theme">Тема</string>
     <string name="setting_accent">Цвет</string>
