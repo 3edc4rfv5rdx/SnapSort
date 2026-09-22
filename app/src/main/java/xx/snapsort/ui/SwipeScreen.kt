@@ -23,6 +23,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -163,7 +165,7 @@ fun SwipeScreen(
                                     total = vm.images.size,
                                     modifier = Modifier
                                         .align(Alignment.TopStart)
-                                        .padding(start = 12.dp, top = 12.dp, end = 64.dp),
+                                        .padding(start = 12.dp, top = 12.dp, end = TOP_BUTTONS_WIDTH + 12.dp),
                                 )
                             }
                             BottomBar(
@@ -192,65 +194,89 @@ fun SwipeScreen(
                     }
                 }
 
-                Box(Modifier.align(Alignment.TopEnd).windowInsetsPadding(WindowInsets.systemBars).padding(4.dp)) {
-                    MoreButton(onClick = { menuOpen = true }, overlay = true)
-                    AppMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(stringResource(R.string.undo), style = MaterialTheme.typography.titleLarge)
-                            },
-                            enabled = vm.canUndo,
-                            onClick = { menuOpen = false; vm.undo() },
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    stringResource(R.string.change_folder),
-                                    style = MaterialTheme.typography.titleLarge,
-                                )
-                            },
-                            onClick = { menuOpen = false; pickerOpen = true },
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(stringResource(R.string.trash), style = MaterialTheme.typography.titleLarge)
-                            },
-                            // The trash lives under the picked folder: without
-                            // one there is nothing to list, and opening it
-                            // would leave the screen loading forever.
-                            enabled = vm.hasFolder,
-                            onClick = { menuOpen = false; vm.openTrash() },
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    stringResource(R.string.disk_space),
-                                    style = MaterialTheme.typography.titleLarge,
-                                )
-                            },
-                            onClick = { menuOpen = false; vm.openDiskSpace() },
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    stringResource(R.string.reset_position),
-                                    style = MaterialTheme.typography.titleLarge,
-                                )
-                            },
-                            onClick = { menuOpen = false; vm.resetPosition() },
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleLarge)
-                            },
-                            onClick = { menuOpen = false; settingsOpen = true },
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text(stringResource(R.string.about), style = MaterialTheme.typography.titleLarge)
-                            },
-                            onClick = { menuOpen = false; onAbout() },
-                        )
+                // The menu's most used entries as buttons of their own; the
+                // menu keeps them too. Not turned with the phone: this is a
+                // portrait screen, and only the photo and its controls follow.
+                Row(
+                    Modifier.align(Alignment.TopEnd).windowInsetsPadding(WindowInsets.systemBars).padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(TOP_BUTTON_GAP),
+                ) {
+                    OverlayIconButton(
+                        icon = Icons.Outlined.Delete,
+                        contentDescription = stringResource(R.string.trash),
+                        onClick = vm::openTrash,
+                        enabled = vm.hasFolder,
+                    )
+                    OverlayIconButton(
+                        icon = Icons.Filled.FolderOpen,
+                        contentDescription = stringResource(R.string.change_folder),
+                        onClick = { pickerOpen = true },
+                    )
+                    OverlayIconButton(
+                        icon = Icons.Filled.Storage,
+                        contentDescription = stringResource(R.string.disk_space),
+                        onClick = vm::openDiskSpace,
+                    )
+                    Box {
+                        MoreButton(onClick = { menuOpen = true }, overlay = true)
+                        AppMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.undo), style = MaterialTheme.typography.titleLarge)
+                                },
+                                enabled = vm.canUndo,
+                                onClick = { menuOpen = false; vm.undo() },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(R.string.change_folder),
+                                        style = MaterialTheme.typography.titleLarge,
+                                    )
+                                },
+                                onClick = { menuOpen = false; pickerOpen = true },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.trash), style = MaterialTheme.typography.titleLarge)
+                                },
+                                // The trash lives under the picked folder: without
+                                // one there is nothing to list, and opening it
+                                // would leave the screen loading forever.
+                                enabled = vm.hasFolder,
+                                onClick = { menuOpen = false; vm.openTrash() },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(R.string.disk_space),
+                                        style = MaterialTheme.typography.titleLarge,
+                                    )
+                                },
+                                onClick = { menuOpen = false; vm.openDiskSpace() },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(R.string.reset_position),
+                                        style = MaterialTheme.typography.titleLarge,
+                                    )
+                                },
+                                onClick = { menuOpen = false; vm.resetPosition() },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleLarge)
+                                },
+                                onClick = { menuOpen = false; settingsOpen = true },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.about), style = MaterialTheme.typography.titleLarge)
+                                },
+                                onClick = { menuOpen = false; onAbout() },
+                            )
+                        }
                     }
                 }
             }
@@ -372,6 +398,12 @@ private fun ScanningState(count: Int) {
         Text(labelValue(stringResource(R.string.scanning), formatCount(count)))
     }
 }
+
+// The buttons at the top right — trash, folder, disk space, ⋮ — at the 48dp
+// an IconButton takes, their gaps and the row's own 4dp: how far the count
+// pill at the top left has to stay clear of them.
+private val TOP_BUTTON_GAP = 4.dp
+private val TOP_BUTTONS_WIDTH = 4.dp + 48.dp * 4 + TOP_BUTTON_GAP * 3
 
 private val BOTTOM_BUTTON = 64.dp
 private val NAV_BUTTON = 80.dp
