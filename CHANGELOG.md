@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- I: Unit tests for the trash and the folder scan
 - E: Reopening a folder lands on the photo last viewed even after files were added to it or removed outside the app, instead of a neighbour
 - F: About shows the app's version, not just its build date
 - N: The trash can put everything back at once, after a confirmation; a file whose place is taken stays in the trash and is counted
