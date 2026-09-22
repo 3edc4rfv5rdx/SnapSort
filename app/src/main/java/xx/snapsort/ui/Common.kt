@@ -87,6 +87,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -98,6 +99,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
@@ -530,29 +532,26 @@ fun AccentSwatch(color: Color, selected: Boolean, onClick: () -> Unit) {
 
 // ---------- Info pills ----------
 
-/** A translucent rounded chip that reads over a photo of any colour, in either theme. */
+/**
+ * A translucent rounded chip that reads over a photo of any colour, in either
+ * theme. [vertical] is the room above and below the text: a chip of several
+ * lines takes what a chip of one line was given, so the buttons over it do not
+ * move when a line is added.
+ */
 @Composable
-private fun InfoPill(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+private fun InfoPill(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(50),
+    vertical: Dp = 6.dp,
+    content: @Composable () -> Unit,
+) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(50),
+        shape = shape,
         color = Color.Black.copy(alpha = 0.55f),
         contentColor = Color.White,
     ) {
-        Box(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) { content() }
-    }
-}
-
-/**
- * A photo's file name, meant to sit over the top of the photo. Sized by
- * [modifier] — pass [Modifier.fillMaxWidth] to let it use all the room a
- * caller gives it rather than some guessed-at fixed width; `TextOverflow
- * .Ellipsis` already adapts to whatever width that turns out to be.
- */
-@Composable
-fun NamePill(name: String, modifier: Modifier = Modifier) {
-    InfoPill(modifier) {
-        Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
+        Box(Modifier.padding(horizontal = 12.dp, vertical = vertical)) { content() }
     }
 }
 
@@ -561,49 +560,54 @@ fun NamePill(name: String, modifier: Modifier = Modifier) {
 // has no built-in start-ellipsis this project can rely on being present.
 private const val CHAR_WIDTH_DP = 8.5f
 
-/** A photo's folder, truncated from the *start* so the part nearest the file
- * stays visible — sized by [modifier], same as [NamePill]. */
+/** When a file was taken and how big it is, as [FilePill] shows them. */
+private class FileInfo(val takenAt: Long, val size: Long)
+
+/**
+ * Everything about the file on screen, in one chip under the photo: its name,
+ * when it was taken with how big it is, and the folder it is in. Three lines
+ * in the room two chips took, so the buttons above stay where they are. The
+ * folder is cut from the *start*, since the part nearest the file says most;
+ * the date means opening the file, so that line fills in a moment later.
+ */
 @Composable
-fun PathPill(path: String, modifier: Modifier = Modifier) {
-    InfoPill(modifier) {
+fun FilePill(name: String, path: String, filePath: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val info by produceState<FileInfo?>(initialValue = null, key1 = filePath) {
+        // Cleared first: produceState keeps its value across a new key, and the
+        // previous photo's date would otherwise stand under this one.
+        value = null
+        value = withContext(Dispatchers.IO) { File(filePath).let { FileInfo(takenAt(it), it.length()) } }
+    }
+    InfoPill(modifier, shape = RoundedCornerShape(16.dp), vertical = 1.dp) {
         BoxWithConstraints {
             val maxChars = (maxWidth.value / CHAR_WIDTH_DP).toInt().coerceAtLeast(4)
-            val shown = if (path.length > maxChars) "…" + path.takeLast(maxChars - 1) else path
-            Text(shown, maxLines = 1, overflow = TextOverflow.Clip, style = MaterialTheme.typography.bodyLarge)
+            val shownPath = if (path.length > maxChars) "…" + path.takeLast(maxChars - 1) else path
+            Column {
+                PillLine(name, overflow = TextOverflow.Ellipsis)
+                // A blank line, not no line: the chip would otherwise grow by
+                // one when the date lands, moving everything above it.
+                PillLine(info?.let { dotted(takenText(context, it.takenAt), formatSize(context, it.size)) } ?: " ")
+                PillLine(shownPath)
+            }
         }
     }
 }
 
-/** When a file was taken and how big it is, as [FileInfoPill] shows them. */
-private class FileInfo(val takenAt: Long, val size: Long)
+@Composable
+private fun PillLine(text: String, overflow: TextOverflow = TextOverflow.Clip) {
+    Text(text, maxLines = 1, overflow = overflow, style = MaterialTheme.typography.bodyLarge)
+}
 
 /**
- * The date and time the photo or video at [path] was taken, and its size.
- * Nothing until both are read: the date means opening the file.
+ * The day, month and two-digit year in the language's own order, and the time
+ * the way the phone is set to show it, 24-hour or not.
  */
 @Composable
-fun FileInfoPill(path: String, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val info by produceState<FileInfo?>(initialValue = null, key1 = path) {
-        // Cleared first: produceState keeps its value across a new key, and the
-        // previous photo's date would otherwise stand under this one.
-        value = null
-        value = withContext(Dispatchers.IO) { File(path).let { FileInfo(takenAt(it), it.length()) } }
-    }
-    val shown = info ?: return
-    // Day, month and a two-digit year in the language's own order, and the time
-    // the way the phone is set to show it, 24-hour or not: kept short, since the
-    // path on the same line gets whatever this leaves.
+private fun takenText(context: Context, takenAt: Long): String {
     val locale = LocalConfiguration.current.locales[0]
-    val date = DateFormat.format(DateFormat.getBestDateTimePattern(locale, "ddMMyy"), shown.takenAt)
-    val time = DateFormat.getTimeFormat(context).format(Date(shown.takenAt))
-    InfoPill(modifier) {
-        Text(
-            dotted("$date $time", formatSize(context, shown.size)),
-            maxLines = 1,
-            style = MaterialTheme.typography.bodyLarge,
-        )
-    }
+    val date = DateFormat.format(DateFormat.getBestDateTimePattern(locale, "ddMMyy"), takenAt)
+    return "$date ${DateFormat.getTimeFormat(context).format(Date(takenAt))}"
 }
 
 /** Where the current photo sits in the queue, one-based. */

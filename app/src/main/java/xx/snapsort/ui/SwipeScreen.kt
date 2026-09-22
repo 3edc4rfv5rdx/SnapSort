@@ -226,25 +226,15 @@ fun SwipeScreen(
                                 onBack = vm::previous,
                                 onForward = vm::next,
                             )
-                            Column(
+                            FilePill(
+                                name = entry.file.name,
+                                path = entry.file.parentFile?.let { pathOnVolume(it, vm.volumeRoot) }.orEmpty(),
+                                filePath = entry.file.path,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .windowInsetsPadding(WindowInsets.navigationBars)
                                     .padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 4.dp),
-                            ) {
-                                NamePill(name = entry.file.name, modifier = Modifier.fillMaxWidth())
-                                Spacer(Modifier.height(2.dp))
-                                // Date and size share the path's line rather than adding
-                                // one: a third line would push the buttons up by its height.
-                                Row(Modifier.fillMaxWidth()) {
-                                    PathPill(
-                                        path = entry.file.parentFile?.let { pathOnVolume(it, vm.volumeRoot) }.orEmpty(),
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    FileInfoPill(path = entry.file.path)
-                                }
-                            }
+                            )
                         }
                     }
                 }
