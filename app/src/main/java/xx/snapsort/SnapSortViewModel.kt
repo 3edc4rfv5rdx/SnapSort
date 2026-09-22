@@ -155,7 +155,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         // this, a pick that is never browsed leaves the old folder's index in
         // place, and the next launch restores it against the new folder —
         // landing on its last photo instead of its first.
-        AppSettings.setLastIndex(context, 0)
+        AppSettings.setLastPosition(context, 0, null)
         loadFolder(dir, restorePosition = false)
     }
 
@@ -195,7 +195,10 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 images = found.sortedWith(compareBy({ it.relativePath }, { it.file.name }))
                 if (restorePosition && images.isNotEmpty() && AppSettings.rememberPosition.value) {
-                    index = AppSettings.lastIndex(getApplication()).coerceIn(0, images.lastIndex)
+                    val context = getApplication<Application>()
+                    val saved = AppSettings.lastPath(context)
+                    val byPath = if (saved == null) -1 else images.indexOfFirst { it.file.path == saved }
+                    index = if (byPath >= 0) byPath else AppSettings.lastIndex(context).coerceIn(0, images.lastIndex)
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -213,7 +216,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     private fun moveTo(newIndex: Int) {
         index = newIndex
         if (AppSettings.rememberPosition.value) {
-            AppSettings.setLastIndex(getApplication(), index)
+            AppSettings.setLastPosition(getApplication(), index, current?.file?.path)
         }
     }
 
@@ -231,7 +234,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Jumps back to the first photo and forgets the saved position, from the Settings "reset" row. */
     fun resetPosition() {
-        AppSettings.setLastIndex(getApplication(), 0)
+        AppSettings.setLastPosition(getApplication(), 0, null)
         if (images.isNotEmpty()) index = 0
     }
 

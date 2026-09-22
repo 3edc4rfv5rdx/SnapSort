@@ -32,6 +32,7 @@ object AppSettings {
     private const val KEY_FOLDER_PATH = "folder_path"
     private const val KEY_REMEMBER_POSITION = "remember_position"
     private const val KEY_LAST_INDEX = "last_index"
+    private const val KEY_LAST_PATH = "last_path"
 
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
@@ -74,11 +75,22 @@ object AppSettings {
         prefs(context).edit { putBoolean(KEY_REMEMBER_POSITION, enabled) }
     }
 
-    /** Where browsing left off in the current folder, read back once a fresh scan of it finishes. */
+    /**
+     * Where browsing left off in the current folder, read back once a fresh
+     * scan of it finishes: the photo itself by [lastPath], and its place in
+     * the queue for when that file is gone — a file added or removed outside
+     * the app shifts every place after it, so the place alone would land on
+     * a neighbour.
+     */
     fun lastIndex(context: Context): Int = prefs(context).getInt(KEY_LAST_INDEX, 0)
 
-    fun setLastIndex(context: Context, index: Int) {
-        prefs(context).edit { putInt(KEY_LAST_INDEX, index) }
+    fun lastPath(context: Context): String? = prefs(context).getString(KEY_LAST_PATH, null)
+
+    fun setLastPosition(context: Context, index: Int, path: String?) {
+        prefs(context).edit {
+            putInt(KEY_LAST_INDEX, index)
+            if (path == null) remove(KEY_LAST_PATH) else putString(KEY_LAST_PATH, path)
+        }
     }
 
     /**
