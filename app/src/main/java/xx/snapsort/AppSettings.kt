@@ -33,12 +33,16 @@ object AppSettings {
     private const val KEY_REMEMBER_POSITION = "remember_position"
     private const val KEY_LAST_INDEX = "last_index"
     private const val KEY_LAST_PATH = "last_path"
+    private const val KEY_QUEUE_ORDER = "queue_order"
 
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     private val _accentIndex = MutableStateFlow(0)
     val accentIndex: StateFlow<Int> = _accentIndex.asStateFlow()
+
+    private val _queueOrder = MutableStateFlow(QueueOrder.NAME)
+    val queueOrder: StateFlow<QueueOrder> = _queueOrder.asStateFlow()
 
     private val _rememberPosition = MutableStateFlow(true)
     val rememberPosition: StateFlow<Boolean> = _rememberPosition.asStateFlow()
@@ -48,6 +52,7 @@ object AppSettings {
         _themeMode.value = enumOr(prefs.getString(KEY_THEME, null), ThemeMode.SYSTEM)
         _accentIndex.value = prefs.getInt(KEY_ACCENT, 0).coerceIn(0, ACCENT_COUNT - 1)
         _rememberPosition.value = prefs.getBoolean(KEY_REMEMBER_POSITION, true)
+        _queueOrder.value = enumOr(prefs.getString(KEY_QUEUE_ORDER, null), QueueOrder.NAME)
     }
 
     fun setThemeMode(context: Context, mode: ThemeMode) {
@@ -68,6 +73,11 @@ object AppSettings {
         prefs(context).edit {
             if (path == null) remove(KEY_FOLDER_PATH) else putString(KEY_FOLDER_PATH, path)
         }
+    }
+
+    fun setQueueOrder(context: Context, order: QueueOrder) {
+        _queueOrder.value = order
+        prefs(context).edit { putString(KEY_QUEUE_ORDER, order.name) }
     }
 
     fun setRememberPosition(context: Context, enabled: Boolean) {

@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.updater.Updater
 import xx.snapsort.AppSettings
+import xx.snapsort.QueueOrder
 import xx.snapsort.R
 import xx.snapsort.ThemeMode
 import xx.snapsort.currentLanguageTag
@@ -37,9 +38,12 @@ import xx.snapsort.setLanguageTag
 import xx.snapsort.supportedLanguages
 
 /** Which editor is open; only one can be at a time. */
-private enum class Editing { NONE, THEME, ACCENT, LANGUAGE }
+private enum class Editing { NONE, THEME, ACCENT, LANGUAGE, ORDER }
 
-/** Theme, accent colour, language, the start-up update check, and whether browse position is remembered. */
+/**
+ * Theme, accent colour, language, the start-up update check, the queue's
+ * order, and whether browse position is remembered.
+ */
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -47,6 +51,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val themeMode by AppSettings.themeMode.collectAsState()
     val accentIndex by AppSettings.accentIndex.collectAsState()
     val rememberPosition by AppSettings.rememberPosition.collectAsState()
+    val queueOrder by AppSettings.queueOrder.collectAsState()
 
     val systemLabel = stringResource(R.string.language_system)
     val languages = remember(context, systemLabel) { supportedLanguages(context, systemLabel) }
@@ -108,6 +113,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             )
         }
         HorizontalDivider()
+        SettingRow(
+            label = stringResource(R.string.setting_order),
+            value = stringResource(queueOrder.labelRes()),
+            onClick = { editing = Editing.ORDER },
+        )
+        HorizontalDivider()
         // The whole row is not clickable: the switch is the control.
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
@@ -167,6 +178,18 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             },
         )
 
+        Editing.ORDER -> ChoiceDialog(
+            title = stringResource(R.string.setting_order),
+            options = QueueOrder.entries,
+            selected = queueOrder,
+            label = { stringResource(it.labelRes()) },
+            onDismiss = { editing = Editing.NONE },
+            onPick = {
+                AppSettings.setQueueOrder(context, it)
+                editing = Editing.NONE
+            },
+        )
+
         Editing.NONE -> Unit
     }
 }
@@ -180,6 +203,12 @@ private fun SettingRow(label: String, value: String, onClick: () -> Unit) {
         Text(label, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
         Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
+}
+
+private fun QueueOrder.labelRes(): Int = when (this) {
+    QueueOrder.NAME -> R.string.order_name
+    QueueOrder.DATE_OLDEST -> R.string.order_oldest
+    QueueOrder.DATE_NEWEST -> R.string.order_newest
 }
 
 private fun ThemeMode.labelRes(): Int = when (this) {

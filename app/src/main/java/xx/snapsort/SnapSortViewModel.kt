@@ -14,13 +14,19 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xx.snapsort.ui.formatCount
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * A line for the snackbar: a string resource with its format [args], if it
@@ -39,6 +45,9 @@ enum class TrashJob { EMPTY, RESTORE }
 private data class TrashedSlot(val index: Int, val entry: ImageEntry, val trashId: String, val size: Long)
 
 private const val PROGRESS_POLL_MS = 200L
+
+/** Dates are read a few files at a time: the reads are mostly waiting on storage. */
+private val dateDispatcher = Dispatchers.IO.limitedParallelism(4)
 
 class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -63,6 +72,17 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var scannedCount by mutableIntStateOf(0)
         private set
+
+    /** Part of [scanning] for a date order: [datesRead] of [datesTotal] files have had their date read so far. */
+    var readingDates by mutableStateOf(false)
+        private set
+    var datesRead by mutableIntStateOf(0)
+        private set
+    var datesTotal by mutableIntStateOf(0)
+        private set
+
+    /** Each file's date taken by path, read once: a new scan or a change of order does not open the file again. */
+    private val takenAtCache = ConcurrentHashMap<String, Long>()
 
     /** A trash, restore or purge is in flight; the queue must not move under it. */
     var busy by mutableStateOf(false)
@@ -112,6 +132,11 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     val canUndo: Boolean get() = trashedStack.isNotEmpty()
 
     private var scanJob: Job? = null
+
+    init {
+        // Only a change: the order in force when the folder opens is applied by the scan itself.
+        viewModelScope.launch { AppSettings.queueOrder.drop(1).collect { reorder() } }
+    }
 
     val current: ImageEntry? get() = images.getOrNull(index)
     val hasFolder: Boolean get() = root != null
@@ -210,7 +235,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 val found = withContext(Dispatchers.IO) {
                     ImageScanner.scan(r, progress) { ensureActive() }
                 }
-                images = found.sortedWith(compareBy({ it.relativePath }, { it.file.name }))
+                images = ordered(found)
                 if (restorePosition && images.isNotEmpty() && AppSettings.rememberPosition.value) {
                     val context = getApplication<Application>()
                     val saved = AppSettings.lastPath(context)
@@ -225,6 +250,66 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 ticker.cancel()
                 scanning = false
             }
+        }
+    }
+
+    /** The order changed in Settings: the same queue re-sorted, with the photo on screen kept on screen. */
+    private fun reorder() {
+        // A scan in flight sorts by the new order itself when it gets there.
+        if (scanning || images.isEmpty()) return
+        val onScreen = current
+        val queue = images
+        scanning = true
+        scanJob = viewModelScope.launch {
+            try {
+                images = ordered(queue)
+                moveTo(images.indexOf(onScreen).coerceAtLeast(0))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notice = Notice(R.string.scan_failed, detail = e.message)
+            } finally {
+                scanning = false
+            }
+        }
+    }
+
+    /** [found] in the order set in Settings, reading first the dates a date order needs. */
+    private suspend fun ordered(found: List<ImageEntry>): List<ImageEntry> {
+        val order = AppSettings.queueOrder.value
+        if (order.byDate) readDates(found)
+        return sortQueue(found, order) { takenAtCache.getValue(it.file.path) }
+    }
+
+    /**
+     * Fills [takenAtCache] for every entry not in it yet, with progress: it
+     * means opening each file, which on thousands of them takes a while.
+     */
+    private suspend fun readDates(entries: List<ImageEntry>) {
+        val missing = entries.filterNot { takenAtCache.containsKey(it.file.path) }
+        if (missing.isEmpty()) return
+        val done = AtomicInteger(0)
+        datesRead = 0
+        datesTotal = missing.size
+        readingDates = true
+        try {
+            coroutineScope {
+                val ticker = launch {
+                    while (isActive) {
+                        datesRead = done.get()
+                        delay(PROGRESS_POLL_MS)
+                    }
+                }
+                missing.map { entry ->
+                    async(dateDispatcher) {
+                        takenAtCache[entry.file.path] = takenAt(entry.file)
+                        done.incrementAndGet()
+                    }
+                }.awaitAll()
+                ticker.cancel()
+            }
+        } finally {
+            readingDates = false
         }
     }
 

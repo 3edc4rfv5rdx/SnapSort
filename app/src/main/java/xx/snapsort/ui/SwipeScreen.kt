@@ -153,7 +153,17 @@ fun SwipeScreen(
                         action = { PickFolderButton { pickerOpen = true } },
                     )
 
-                    vm.scanning -> ScanningState(vm.scannedCount)
+                    vm.scanning -> ScanningState(
+                        text = if (vm.readingDates) {
+                            stringResource(
+                                R.string.reading_dates,
+                                formatCount(vm.datesRead),
+                                formatCount(vm.datesTotal),
+                            )
+                        } else {
+                            labelValue(stringResource(R.string.scanning), formatCount(vm.scannedCount))
+                        },
+                    )
 
                     vm.images.isEmpty() -> EmptyState(
                         icon = Icons.Filled.FolderOpen,
@@ -429,7 +439,7 @@ private fun EmptyState(
 }
 
 @Composable
-private fun ScanningState(count: Int) {
+private fun ScanningState(text: String) {
     Column(
         Modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -437,7 +447,7 @@ private fun ScanningState(count: Int) {
     ) {
         CircularProgressIndicator()
         Spacer(Modifier.height(16.dp))
-        Text(labelValue(stringResource(R.string.scanning), formatCount(count)))
+        Text(text)
     }
 }
 

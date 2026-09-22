@@ -17,6 +17,7 @@
     <string name="settings">Настройки</string>
     <string name="about">О программе</string>
     <string name="scanning">Поиск фото и видео</string>
+    <string name="reading_dates">Читаю даты: %1$s из %2$s</string>
     <string name="scan_failed">Не удалось просканировать папку</string>
     <string name="no_photos">В этой папке нет фото и видео</string>
     <string name="photo_load_failed">Не удалось загрузить это фото</string>
@@ -60,6 +61,10 @@
     <string name="setting_accent">Цвет</string>
     <string name="setting_language">Язык</string>
     <string name="setting_update_check">Проверять обновления при запуске</string>
+    <string name="setting_order">Порядок</string>
+    <string name="order_name">По имени</string>
+    <string name="order_oldest">Сначала старые</string>
+    <string name="order_newest">Сначала новые</string>
     <string name="setting_remember_position">Запоминать позицию в папке</string>
     <string name="reset_position">Сброс позиции</string>
     <string name="theme_system">Системная</string>
