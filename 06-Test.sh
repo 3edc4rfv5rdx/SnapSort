@@ -21,7 +21,10 @@ rm -rf "$RESULTS"
 
 # Don't abort on failing tests — the summary below is exactly what we want to
 # see then.
-./gradlew testDebugUnitTest --rerun-tasks "$@" || status=$?
+# --rerun, not --rerun-tasks: only the test task itself is forced to run again
+# (an UP-TO-DATE one would write no results after the clear above); compiling
+# stays incremental instead of redoing the whole build every time.
+./gradlew testDebugUnitTest --rerun "$@" || status=$?
 
 echo
 RESULTS="$RESULTS" \
