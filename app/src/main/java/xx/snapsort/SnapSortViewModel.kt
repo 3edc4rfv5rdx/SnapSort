@@ -261,16 +261,22 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         val slot = trashedStack.removeLastOrNull() ?: return
         val r = volumeRoot ?: return
         runBusy(onFailure = Notice(R.string.restore_failed)) {
-            val ok = withContext(Dispatchers.IO) {
-                val entry = Trash.get(r, slot.trashId) ?: return@withContext false
-                Trash.restore(entry) == Trash.RestoreResult.OK
-            }
-            if (ok) {
-                images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
-                moveTo(slot.index.coerceIn(0, images.lastIndex))
-            } else {
-                trashedStack.addLast(slot)
-                notice = Notice(R.string.restore_failed)
+            // Null: the item is no longer in the trash at all.
+            val result = withContext(Dispatchers.IO) { Trash.get(r, slot.trashId)?.let(Trash::restore) }
+            when (result) {
+                Trash.RestoreResult.OK -> {
+                    images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
+                    moveTo(slot.index.coerceIn(0, images.lastIndex))
+                }
+                // Worth another try, so the slot goes back on top.
+                Trash.RestoreResult.FAILED -> {
+                    trashedStack.addLast(slot)
+                    notice = Notice(R.string.restore_failed)
+                }
+                // Would fail the same way every time and block every undo
+                // before it: dropped. The item itself stays in the trash.
+                Trash.RestoreResult.TARGET_EXISTS -> notice = Notice(R.string.restore_exists)
+                null -> notice = Notice(R.string.restore_failed)
             }
         }
     }
