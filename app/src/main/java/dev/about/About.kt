@@ -15,8 +15,13 @@ object About {
     fun show(activity: ComponentActivity, config: AboutConfig) {
         AlertDialog.Builder(activity)
             .setTitle(activity.applicationInfo.loadLabel(activity.packageManager))
-            .setMessage("Build date: ${config.buildDate}")
+            .setMessage("Version: ${versionName(activity)}\nBuild date: ${config.buildDate}")
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }
+
+    // From the installed package rather than a new AboutConfig field, so the
+    // call site stays the shape the real module expects.
+    private fun versionName(activity: ComponentActivity): String =
+        activity.packageManager.getPackageInfo(activity.packageName, 0).versionName.orEmpty()
 }

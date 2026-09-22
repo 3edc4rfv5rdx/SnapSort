@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- F: About shows the app's version, not just its build date
 - N: The trash can put everything back at once, after a confirmation; a file whose place is taken stays in the trash and is counted
 - F: The main screen has buttons for the trash, changing folder and disk space next to ⋮; the menu keeps them too
 - F: The ⋮ button over the photo and the back button over a trash photo are a size larger, with larger icons
