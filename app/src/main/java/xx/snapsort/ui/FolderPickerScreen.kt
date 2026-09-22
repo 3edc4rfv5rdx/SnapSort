@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -92,17 +93,26 @@ fun FolderPickerScreen(onPick: (File) -> Unit, modifier: Modifier = Modifier) {
             }
         } else {
             // Listed off the main thread: a folder of thousands of files takes
-            // a moment to sift, the same way the photo scan does.
-            val children by produceState(initialValue = emptyList<File>(), key1 = path) {
+            // a moment to sift, the same way the photo scan does. Null while it
+            // does, set first thing: produceState keeps its value across a new
+            // key, and the folder just left would otherwise stay listed — and
+            // tappable — under the new one's path until the listing lands.
+            val children by produceState<List<File>?>(initialValue = null, key1 = path) {
+                value = null
                 value = withContext(Dispatchers.IO) { subFolders(File(path)) }
             }
-            if (children.isEmpty()) {
+            val listed = children
+            if (listed == null) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (listed.isEmpty()) {
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Text(stringResource(R.string.folder_no_subfolders))
                 }
             } else {
                 LazyColumn(Modifier.weight(1f)) {
-                    items(children, key = { it.path }) { child ->
+                    items(listed, key = { it.path }) { child ->
                         FolderRow(name = child.name) { path = child.path }
                         HorizontalDivider()
                     }
