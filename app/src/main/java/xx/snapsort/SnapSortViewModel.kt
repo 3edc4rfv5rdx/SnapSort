@@ -222,13 +222,15 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     /** One photo forward — pure navigation, nothing on disk changes. */
     fun next() {
-        if (images.isEmpty()) return
+        // Busy: the buttons are off then, but a swipe calls straight in here.
+        if (images.isEmpty() || busy) return
         moveTo((index + 1).coerceAtMost(images.lastIndex))
     }
 
     /** One photo back — pure navigation, nothing on disk changes. */
     fun previous() {
-        if (images.isEmpty()) return
+        // Busy: the buttons are off then, but a swipe calls straight in here.
+        if (images.isEmpty() || busy) return
         moveTo((index - 1).coerceAtLeast(0))
     }
 
