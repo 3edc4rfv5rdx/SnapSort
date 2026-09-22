@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- E: Restoring a photo from the trash no longer changes which photo the main screen shows
 - E: Opening a folder in the folder browser no longer shows the previous folder's subfolders, still tappable, until its own list arrives
 - I: Unit tests for the trash and the folder scan
 - E: Reopening a folder lands on the photo last viewed even after files were added to it or removed outside the app, instead of a neighbour

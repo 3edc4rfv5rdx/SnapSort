@@ -334,7 +334,11 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 val slot = trashedStack.firstOrNull { it.trashId == entry.id }
                 forgetTrashedSlotOf(entry.id)
                 if (slot != null) {
+                    // Spliced in ahead of the photo on screen, it would shift
+                    // that one along and show its neighbour on the way back.
+                    val onScreen = current
                     images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
+                    moveTo(if (onScreen == null) 0 else images.indexOf(onScreen))
                 }
                 reloadTrash()
             }
