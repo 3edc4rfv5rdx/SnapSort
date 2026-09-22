@@ -38,11 +38,26 @@ class Notice(@param:StringRes val text: Int, val detail: String? = null, val arg
 enum class TrashJob { EMPTY, RESTORE }
 
 /**
- * One photo sent to the trash this session, and where it stood in [SnapSortViewModel.images]
- * before it was spliced out — [SnapSortViewModel.undo] needs both to put it back in the same spot.
- * [size] is what it counted for in the session's tally, to take back out if it comes back.
+ * One photo taken out of the queue this session — thrown away or sorted into a
+ * folder — and where it stood in [SnapSortViewModel.images] before it was
+ * spliced out, which [SnapSortViewModel.undo] needs to put it back in the same
+ * spot. One history for both, so undo walks back through them in order.
  */
-private data class TrashedSlot(val index: Int, val entry: ImageEntry, val trashId: String, val size: Long)
+private sealed interface Step {
+    val index: Int
+    val entry: ImageEntry
+
+    /** [size] is what it counted for in the session's tally, to take back out if it comes back. */
+    data class Trashed(
+        override val index: Int,
+        override val entry: ImageEntry,
+        val trashId: String,
+        val size: Long,
+    ) : Step
+
+    /** [movedTo] is where the file is now; [entry] still says where it came from. */
+    data class Moved(override val index: Int, override val entry: ImageEntry, val movedTo: File) : Step
+}
 
 private const val PROGRESS_POLL_MS = 200L
 
@@ -127,9 +142,11 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     var sessionTrashedBytes by mutableLongStateOf(0L)
         private set
 
-    /** Every trash this session, most recent last; only [undo] pops it. */
-    private val trashedStack = ArrayDeque<TrashedSlot>()
-    val canUndo: Boolean get() = trashedStack.isNotEmpty()
+    /** Every photo taken out of the queue this session, most recent last; only [undo] pops it. */
+    private val history = ArrayDeque<Step>()
+    val canUndo: Boolean get() = history.isNotEmpty()
+
+    private val trashed: List<Step.Trashed> get() = history.filterIsInstance<Step.Trashed>()
 
     private var scanJob: Job? = null
 
@@ -222,7 +239,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         scannedCount = 0
         images = emptyList()
         index = 0
-        trashedStack.clear()
+        history.clear()
         scanJob = viewModelScope.launch {
             val progress = ImageScanner.Progress()
             val ticker = launch {
@@ -352,7 +369,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             val (size, trashId) = withContext(Dispatchers.IO) { entry.file.length() to Trash.moveToTrash(entry, r) }
             if (trashId != null) {
                 images = images.toMutableList().also { it.removeAt(at) }
-                trashedStack.addLast(TrashedSlot(at, entry, trashId, size))
+                history.addLast(Step.Trashed(at, entry, trashId, size))
                 sessionTrashedCount++
                 sessionTrashedBytes += size
                 moveTo(at.coerceAtMost((images.size - 1).coerceAtLeast(0)))
@@ -362,23 +379,44 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Restores the most recently trashed photo and puts it back in the queue at the spot it left. */
+    /** Sorts the current photo into [folder] beside it and drops it out of the queue. */
+    fun moveInto(folder: SortFolder) {
+        val entry = current ?: return
+        val at = index
+        runBusy(onFailure = Notice(R.string.move_failed)) {
+            val movedTo = withContext(Dispatchers.IO) { SortMove.moveInto(entry.file, folder) }
+            if (movedTo != null) {
+                images = images.toMutableList().also { it.removeAt(at) }
+                history.addLast(Step.Moved(at, entry, movedTo))
+                moveTo(at.coerceAtMost((images.size - 1).coerceAtLeast(0)))
+            } else {
+                notice = Notice(R.string.move_failed)
+            }
+        }
+    }
+
+    /** Takes back the last photo taken out of the queue — trashed or sorted — and puts it back where it stood. */
     fun undo() {
         if (busy) return
-        val slot = trashedStack.removeLastOrNull() ?: return
+        when (val step = history.removeLastOrNull() ?: return) {
+            is Step.Trashed -> undoTrashed(step)
+            is Step.Moved -> undoMoved(step)
+        }
+    }
+
+    private fun undoTrashed(step: Step.Trashed) {
         val r = volumeRoot ?: return
         runBusy(onFailure = Notice(R.string.restore_failed)) {
             // Null: the item is no longer in the trash at all.
-            val result = withContext(Dispatchers.IO) { Trash.get(r, slot.trashId)?.let(Trash::restore) }
+            val result = withContext(Dispatchers.IO) { Trash.get(r, step.trashId)?.let(Trash::restore) }
             when (result) {
                 Trash.RestoreResult.OK -> {
-                    uncount(slot)
-                    images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
-                    moveTo(slot.index.coerceIn(0, images.lastIndex))
+                    uncount(step)
+                    putBack(step)
                 }
-                // Worth another try, so the slot goes back on top.
+                // Worth another try, so the step goes back on top.
                 Trash.RestoreResult.FAILED -> {
-                    trashedStack.addLast(slot)
+                    history.addLast(step)
                     notice = Notice(R.string.restore_failed)
                 }
                 // Would fail the same way every time and block every undo
@@ -387,6 +425,27 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 null -> notice = Notice(R.string.restore_failed)
             }
         }
+    }
+
+    private fun undoMoved(step: Step.Moved) {
+        runBusy(onFailure = Notice(R.string.move_failed)) {
+            when (withContext(Dispatchers.IO) { SortMove.moveBack(step.movedTo, step.entry.file) }) {
+                SortMove.BackResult.OK -> putBack(step)
+                SortMove.BackResult.FAILED -> {
+                    history.addLast(step)
+                    notice = Notice(R.string.move_failed)
+                }
+                // The name is taken where it came from: the file stays sorted,
+                // and the step goes, so it cannot block the undos before it.
+                SortMove.BackResult.TARGET_EXISTS -> notice = Notice(R.string.restore_exists)
+            }
+        }
+    }
+
+    /** [step]'s photo back into the queue at the spot it left, and on screen. */
+    private fun putBack(step: Step) {
+        images = images.toMutableList().also { it.add(step.index.coerceIn(0, it.size), step.entry) }
+        moveTo(step.index.coerceIn(0, images.lastIndex))
     }
 
     fun noticeShown() {
@@ -437,7 +496,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** [slot]'s photo is out of the trash again: it no longer counts as thrown out this session. */
-    private fun uncount(slot: TrashedSlot) {
+    private fun uncount(slot: Step.Trashed) {
         sessionTrashedCount--
         sessionTrashedBytes -= slot.size
     }
@@ -448,7 +507,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
      * acting on a photo that already moved or is gone.
      */
     private fun forgetTrashedSlotOf(id: String) {
-        trashedStack.removeAll { it.trashId == id }
+        history.removeAll { it is Step.Trashed && it.trashId == id }
     }
 
     fun restoreFromTrash(entry: Trash.Entry) {
@@ -462,7 +521,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 },
             )
             if (result == Trash.RestoreResult.OK) {
-                val slot = trashedStack.firstOrNull { it.trashId == entry.id }
+                val slot = trashed.firstOrNull { it.trashId == entry.id }
                 forgetTrashedSlotOf(entry.id)
                 if (slot != null) {
                     uncount(slot)
@@ -494,7 +553,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         runTrashJob(TrashJob.EMPTY, onFailure = Notice(R.string.delete_failed)) { progress ->
             val ok = withContext(Dispatchers.IO) { Trash.empty(r, progress) }
             if (ok) {
-                trashedStack.clear()
+                history.removeAll { it is Step.Trashed }
             } else {
                 notice = Notice(R.string.delete_failed)
             }
@@ -513,13 +572,13 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             val restored = result.restoredIds.toSet()
             val onScreen = current
             val queue = images.toMutableList()
-            for (slot in trashedStack.reversed()) {
+            for (slot in trashed.reversed()) {
                 if (slot.trashId in restored) {
                     uncount(slot)
                     queue.add(slot.index.coerceIn(0, queue.size), slot.entry)
                 }
             }
-            trashedStack.removeAll { it.trashId in restored }
+            history.removeAll { it is Step.Trashed && it.trashId in restored }
             images = queue
             if (onScreen != null) moveTo(queue.indexOf(onScreen).coerceAtLeast(0))
             notice = if (result.notRestored == 0) {

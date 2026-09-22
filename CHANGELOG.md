@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- N: A photo can be put into a folder beside it — Best or Docs by default, up to five, each with its own name and icon, set in Settings — with one tap on a button down the right edge; undo takes it back
 - N: The queue can go by date taken, oldest or newest first, across all folders — set in Settings; the dates are read once, with progress shown
 - N: The disk-space dialog shows what the trash holds, space that comes back once it is emptied, and how much this session threw out
 - N: The date a photo or video was taken and its size show next to its folder, under the buttons

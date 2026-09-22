@@ -44,9 +44,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -99,6 +110,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xx.snapsort.ACCENT_COUNT
 import xx.snapsort.Notice
+import xx.snapsort.SortIcon
 import xx.snapsort.R
 import xx.snapsort.ThemeMode
 import xx.snapsort.isVideo
@@ -274,6 +286,21 @@ fun MoreButton(onClick: () -> Unit, enabled: Boolean = true, overlay: Boolean = 
             Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options))
         }
     }
+}
+
+/** The glyph on a sort folder's button, and on its row in Settings. */
+fun SortIcon.vector(): ImageVector = when (this) {
+    SortIcon.THUMB_UP -> Icons.Filled.ThumbUp
+    SortIcon.DOCUMENT -> Icons.Filled.Description
+    SortIcon.STAR -> Icons.Filled.Star
+    SortIcon.FAVORITE -> Icons.Filled.Favorite
+    SortIcon.PEOPLE -> Icons.Filled.People
+    SortIcon.SCHEDULE -> Icons.Filled.Schedule
+    SortIcon.SEND -> Icons.AutoMirrored.Filled.Send
+    SortIcon.FLIGHT -> Icons.Filled.Flight
+    SortIcon.PRINT -> Icons.Filled.Print
+    SortIcon.MOOD -> Icons.Filled.Mood
+    SortIcon.ARCHIVE -> Icons.Filled.Archive
 }
 
 // ---------- Dialog pieces ----------

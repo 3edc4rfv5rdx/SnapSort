@@ -13,10 +13,12 @@ private val VIDEO_EXTENSIONS = setOf("mp4", "m4v", "3gp", "webm", "mkv", "mov")
  * By extension, which a trashed file keeps, so this holds inside the trash too. */
 fun isVideo(path: String): Boolean = File(path).extension.lowercase() in VIDEO_EXTENSIONS
 
-/** Walks a plain folder tree looking for images and videos. Dot-directories are skipped,
- * which covers the app's own trash wherever a past root left it, so a photo
- * already thrown out never comes back into the queue, and machinery such as
- * .thumbnails never reaches it either. */
+/** Walks a plain folder tree looking for images and videos. Directories whose name
+ * starts with a dot or a dash are skipped: the first covers the app's own trash
+ * wherever a past root left it and machinery such as .thumbnails, the second the
+ * folders photos are sorted into ([SortFolder]). So a photo already thrown out or
+ * put away never comes back into the queue. Either one can still be picked as a
+ * root of its own, to go through what is in it. */
 object ImageScanner {
     class Progress { val files = AtomicInteger(0) }
 
@@ -41,8 +43,8 @@ object ImageScanner {
                 // Matching the trash by its exact path only worked while the
                 // root stayed put: pick a root one level up and the old trash
                 // became an ordinary folder, handing every discarded photo
-                // back to the queue. Its name is what identifies it.
-                if (child.name.startsWith(".")) continue
+                // back to the queue. The name is what identifies both kinds.
+                if (child.name.startsWith(".") || child.name.startsWith(SORT_DIR_PREFIX)) continue
                 val childPath = if (path.isEmpty()) child.name else "$path/${child.name}"
                 walk(child, childPath, progress, checkCancel, found)
             } else if (child.extension.lowercase().let { it in IMAGE_EXTENSIONS || it in VIDEO_EXTENSIONS }) {

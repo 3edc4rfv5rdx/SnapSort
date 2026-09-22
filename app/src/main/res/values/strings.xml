@@ -59,6 +59,12 @@
     <string name="setting_accent">Color</string>
     <string name="setting_language">Language</string>
     <string name="setting_update_check">Check for updates at launch</string>
+    <string name="sort_folders">Sorting folders</string>
+    <string name="sort_folder_add">Add folder</string>
+    <string name="sort_folder_icon">Icon</string>
+    <string name="sort_folder_remove">Remove</string>
+    <string name="move_to">Move to %1$s</string>
+    <string name="move_failed">Could not move</string>
     <string name="setting_order">Order</string>
     <string name="order_name">By name</string>
     <string name="order_oldest">Oldest first</string>

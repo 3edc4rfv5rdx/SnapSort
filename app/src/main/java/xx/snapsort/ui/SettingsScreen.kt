@@ -3,16 +3,21 @@ package xx.snapsort.ui
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -30,15 +36,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.updater.Updater
 import xx.snapsort.AppSettings
+import xx.snapsort.MAX_SORT_FOLDERS
 import xx.snapsort.QueueOrder
 import xx.snapsort.R
+import xx.snapsort.SORT_DIR_PREFIX
+import xx.snapsort.SortFolder
+import xx.snapsort.SortIcon
 import xx.snapsort.ThemeMode
+import xx.snapsort.cleanSortName
 import xx.snapsort.currentLanguageTag
 import xx.snapsort.setLanguageTag
 import xx.snapsort.supportedLanguages
 
 /** Which editor is open; only one can be at a time. */
-private enum class Editing { NONE, THEME, ACCENT, LANGUAGE, ORDER }
+private enum class Editing { NONE, THEME, ACCENT, LANGUAGE, ORDER, SORT_FOLDERS }
 
 /**
  * Theme, accent colour, language, the start-up update check, the queue's
@@ -52,6 +63,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val accentIndex by AppSettings.accentIndex.collectAsState()
     val rememberPosition by AppSettings.rememberPosition.collectAsState()
     val queueOrder by AppSettings.queueOrder.collectAsState()
+    val sortFolders by AppSettings.sortFolders.collectAsState()
 
     val systemLabel = stringResource(R.string.language_system)
     val languages = remember(context, systemLabel) { supportedLanguages(context, systemLabel) }
@@ -112,6 +124,12 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
                 },
             )
         }
+        HorizontalDivider()
+        SettingRow(
+            label = stringResource(R.string.sort_folders),
+            value = formatCount(sortFolders.size),
+            onClick = { editing = Editing.SORT_FOLDERS },
+        )
         HorizontalDivider()
         SettingRow(
             label = stringResource(R.string.setting_order),
@@ -190,6 +208,15 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             },
         )
 
+        Editing.SORT_FOLDERS -> SortFoldersDialog(
+            folders = sortFolders,
+            onDismiss = { editing = Editing.NONE },
+            onSave = {
+                AppSettings.setSortFolders(context, it)
+                editing = Editing.NONE
+            },
+        )
+
         Editing.NONE -> Unit
     }
 }
@@ -203,6 +230,94 @@ private fun SettingRow(label: String, value: String, onClick: () -> Unit) {
         Text(label, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
         Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
+}
+
+/**
+ * The folders the buttons over the photo sort into: up to [MAX_SORT_FOLDERS]
+ * rows of an icon and a name, each a subfolder made beside the photo itself.
+ * Nothing is kept until OK, so a half-typed name can be left behind.
+ */
+@Composable
+private fun SortFoldersDialog(folders: List<SortFolder>, onDismiss: () -> Unit, onSave: (List<SortFolder>) -> Unit) {
+    val editing = remember { folders.map { it.icon to it.name }.toMutableStateList() }
+    var iconFor by remember { mutableStateOf<Int?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.sort_folders)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                editing.forEachIndexed { index, (icon, name) ->
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = { iconFor = index }) {
+                            Icon(icon.vector(), stringResource(R.string.sort_folder_icon))
+                        }
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { editing[index] = icon to it },
+                            singleLine = true,
+                            prefix = { Text(SORT_DIR_PREFIX) },
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(onClick = { editing.removeAt(index) }) {
+                            Icon(Icons.Filled.Close, stringResource(R.string.sort_folder_remove))
+                        }
+                    }
+                }
+                if (editing.size < MAX_SORT_FOLDERS) {
+                    DialogDismissButton(stringResource(R.string.sort_folder_add)) {
+                        editing.add(SortIcon.STAR to "")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            DialogConfirmButton(stringResource(R.string.ok), danger = false) {
+                // Cleaned here, not while typing: a name being edited would
+                // otherwise lose the space or the dash as it is typed.
+                onSave(
+                    editing.map { (icon, name) -> SortFolder(cleanSortName(name), icon) }
+                        .filter { it.name.isNotEmpty() }
+                        .distinctBy { it.name },
+                )
+            }
+        },
+        dismissButton = { DialogDismissButton(stringResource(R.string.cancel), onDismiss) },
+    )
+    iconFor?.let { index ->
+        IconPickerDialog(
+            onDismiss = { iconFor = null },
+            onPick = { picked ->
+                editing[index] = picked to editing[index].second
+                iconFor = null
+            },
+        )
+    }
+}
+
+private const val ICONS_PER_ROW = 6
+
+/** The icons a sort folder's button can carry, to pick one from. */
+@Composable
+private fun IconPickerDialog(onDismiss: () -> Unit, onPick: (SortIcon) -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.sort_folder_icon)) },
+        text = {
+            Column {
+                SortIcon.entries.chunked(ICONS_PER_ROW).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        row.forEach { icon ->
+                            IconButton(onClick = { onPick(icon) }) { Icon(icon.vector(), null) }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { DialogDismissButton(stringResource(R.string.cancel), onDismiss) },
+    )
 }
 
 private fun QueueOrder.labelRes(): Int = when (this) {

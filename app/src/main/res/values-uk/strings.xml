@@ -61,6 +61,12 @@
     <string name="setting_accent">Колір</string>
     <string name="setting_language">Мова</string>
     <string name="setting_update_check">Перевіряти оновлення під час запуску</string>
+    <string name="sort_folders">Теки для розкладання</string>
+    <string name="sort_folder_add">Додати теку</string>
+    <string name="sort_folder_icon">Значок</string>
+    <string name="sort_folder_remove">Прибрати</string>
+    <string name="move_to">Перемістити до %1$s</string>
+    <string name="move_failed">Не вдалося перемістити</string>
     <string name="setting_order">Порядок</string>
     <string name="order_name">За назвою</string>
     <string name="order_oldest">Спершу старі</string>

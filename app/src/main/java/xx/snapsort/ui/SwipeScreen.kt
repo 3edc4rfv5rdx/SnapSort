@@ -39,6 +39,7 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import xx.snapsort.AppSettings
 import xx.snapsort.R
 import xx.snapsort.SnapSortViewModel
 import xx.snapsort.pathOnVolume
@@ -76,6 +78,7 @@ fun SwipeScreen(
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var confirmEmptyTrash by remember { mutableStateOf(false) }
     var confirmRestoreAll by remember { mutableStateOf(false) }
+    val sortFolders by AppSettings.sortFolders.collectAsState()
 
     Box(modifier.fillMaxSize()) {
         when {
@@ -188,6 +191,24 @@ fun SwipeScreen(
                                     onSwipeBackward = vm::previous,
                                     modifier = Modifier.fillMaxSize(),
                                 )
+                                // Down the right edge, clear of the count pill
+                                // and the menu buttons above: one tap puts the
+                                // photo into that folder beside it.
+                                Column(
+                                    Modifier.align(Alignment.CenterEnd).padding(end = 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    for (folder in sortFolders) {
+                                        // Already in that folder: nothing to move it into.
+                                        if (entry.file.parentFile?.name == folder.dirName) continue
+                                        OverlayIconButton(
+                                            icon = folder.icon.vector(),
+                                            contentDescription = stringResource(R.string.move_to, folder.name),
+                                            onClick = { vm.moveInto(folder) },
+                                            enabled = !vm.busy,
+                                        )
+                                    }
+                                }
                                 CountPill(
                                     current = vm.index + 1,
                                     total = vm.images.size,

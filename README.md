@@ -15,7 +15,8 @@ keep it.
 ## Features
 
 - **One file at a time**: every photo and video under the picked folder, in
-  order, with its name, folder and place in the queue on screen. The bin
+  order, with its name, folder, date taken, size and place in the queue on
+  screen. The bin
   trashes the current one; back and forward (or a swipe) move to the previous
   or next, so nothing happens to a file just by looking at it. Undo, in the
   ⋮ menu, restores the last trashed one to its place.
@@ -25,8 +26,8 @@ keep it.
 - **Folder access**: pick any folder once, in SnapSort's own folder browser —
   internal storage or an SD card. It needs "All files access" instead of the
   system picker, which would ask for permission again on every change.
-  SnapSort remembers the folder, and optionally the position in it, and goes
-  through every subfolder except hidden ones.
+  SnapSort remembers the folder, and the file it left off on, and goes through
+  every subfolder except hidden ones and the sorting folders.
 - **Trash**: `Documents/SnapSort/.Trash` at the root of each storage, so
   moving a file there is instant, not a copy. Each file is kept under its
   deletion time, with a record of its name and folder beside it. Open it from
@@ -37,8 +38,15 @@ keep it.
   its own.
 - **⋮ menu**: Undo, Change folder, Trash, Disk space, Reset position,
   Settings and About.
+- **Sorting folders**: buttons down the right edge put the current file into a
+  folder beside it — `-Best` and `-Docs` to begin with, up to five, each with
+  its own name and icon in Settings. The dash keeps them out of the queue,
+  whatever they are called; pick one as a folder of its own to go through what
+  landed there. Undo takes the last one back.
 - **Settings**: light/dark theme, accent colour, language (English, Русский,
-  Українська), remembering the position in a folder, and an update check.
+  Українська), the sorting folders, the order the queue goes in (by name, or
+  by date taken oldest or newest first), remembering the position in a folder,
+  and an update check.
 - **Private**: no account, no ads, no analytics. The app goes online only to
   check its own GitHub release for a newer version, and its settings are left
   out of cloud backups and device transfers.
