@@ -85,6 +85,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import kotlinx.coroutines.CoroutineStart
@@ -322,6 +323,10 @@ fun AppMenu(
     )
 }
 
+/** A dialog's body text: a size up from Material's 14sp, since it is what the dialog is there to say. */
+@Composable
+private fun dialogBodyStyle() = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, lineHeight = 24.sp)
+
 /**
  * OK/Cancel before a step worth a second thought: the message says what is
  * about to happen, so the buttons can stay the same everywhere. [danger]
@@ -338,7 +343,7 @@ fun ConfirmDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
-        text = { Text(message) },
+        text = { Text(message, style = dialogBodyStyle()) },
         confirmButton = { DialogConfirmButton(stringResource(R.string.ok), danger = danger, onClick = onConfirm) },
         dismissButton = { DialogDismissButton(stringResource(R.string.cancel), onDismiss) },
     )
@@ -425,14 +430,14 @@ fun DiskSpaceDialog(freeBytes: Long, totalBytes: Long, onDismiss: () -> Unit) {
                         ),
                         stringResource(R.string.disk_space_percent, percentUsed),
                     ),
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = dialogBodyStyle(),
                 )
                 Spacer(Modifier.height(12.dp))
                 DiskSpaceBar(usedFraction = usedFraction, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(12.dp))
                 Text(
                     labelValue(stringResource(R.string.disk_space_free), formatSize(context, freeBytes)),
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = dialogBodyStyle(),
                 )
             }
         },
