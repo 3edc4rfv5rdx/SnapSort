@@ -67,6 +67,14 @@
     <string name="sort_folder_remove">Убрать</string>
     <string name="move_to">Переместить в %1$s</string>
     <string name="move_failed">Не удалось переместить</string>
+    <string name="sort_by_year">Разложить по годам</string>
+    <string name="years_confirm">Фото и видео с верхнего уровня этой папки разойдутся по папкам годов съёмки, RAW-файлы — вместе со своими фото</string>
+    <string name="years_this_year">%1$s, остаются на месте</string>
+    <string name="years_undated">Без даты, остаются на месте</string>
+    <string name="years_moving">Перенесено %1$s из %2$s</string>
+    <string name="years_done">Разложено по годам: %1$s</string>
+    <string name="years_partial">Перенесено: %1$s, не удалось: %2$s</string>
+    <string name="years_nothing">Нечего раскладывать по годам</string>
     <string name="setting_order">Порядок</string>
     <string name="order_name">По имени</string>
     <string name="order_oldest">Сначала старые</string>

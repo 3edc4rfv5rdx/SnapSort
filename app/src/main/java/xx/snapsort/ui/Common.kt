@@ -377,7 +377,10 @@ fun ConfirmDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
-        text = { Text(message, style = dialogBodyStyle()) },
+        // Scrolls: a message listing one line per year can outgrow the screen.
+        text = {
+            Text(message, style = dialogBodyStyle(), modifier = Modifier.verticalScroll(rememberScrollState()))
+        },
         confirmButton = { DialogConfirmButton(stringResource(R.string.ok), danger = danger, onClick = onConfirm) },
         dismissButton = { DialogDismissButton(stringResource(R.string.cancel), onDismiss) },
     )

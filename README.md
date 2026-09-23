@@ -36,13 +36,18 @@ keep it.
   restores it or deletes it for good. A button at the top empties the whole
   trash with a progress bar. Anything left there for 30 days is deleted on
   its own.
-- **⋮ menu**: Undo, Change folder, Trash, Disk space, Reset position,
-  Settings and About.
+- **⋮ menu**: Undo, Change folder, Trash, Disk space, Sort into years, Reset
+  position, Settings and About.
 - **Sorting folders**: buttons down the right edge put the current file into a
   folder beside it — `-Best` and `-Docs` to begin with, up to five, each with
   its own name and icon in Settings. The dash keeps them out of the queue,
   whatever they are called; pick one as a folder of its own to go through what
   landed there. Undo takes the last one back.
+- **Sort into years**: from the ⋮ menu, the photos and videos at the top of
+  the picked folder go into `2018`, `2019` … beside them, by the date the
+  camera recorded or the one in the file name. A RAW goes with the photo of
+  its name. This year's files and those with no date stay put; subfolders are
+  not touched. A dialog shows the count per year first; there is no undo.
 - **Settings**: light/dark theme, accent colour, language (English, Русский,
   Українська), the sorting folders, the order the queue goes in (by name, or
   by date taken oldest or newest first), remembering the position in a folder,

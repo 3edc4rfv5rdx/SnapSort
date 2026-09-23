@@ -14,10 +14,11 @@ import java.util.TimeZone
  * EXIF for a photo, the container's date for a video — or the file's last
  * change when it has none. Reads the file, so off the main thread.
  */
-fun takenAt(file: File): Long {
-    val recorded = if (isVideo(file.path)) parseVideoDate(videoDateText(file)) else parseExifDate(exifDateText(file))
-    return recorded ?: file.lastModified()
-}
+fun takenAt(file: File): Long = recordedAt(file) ?: file.lastModified()
+
+/** The camera's own record of when [file] was taken, as [takenAt] reads it; null when it has none. */
+fun recordedAt(file: File): Long? =
+    if (isVideo(file.path)) parseVideoDate(videoDateText(file)) else parseExifDate(exifDateText(file))
 
 private fun exifDateText(file: File): String? = try {
     val exif = ExifInterface(file.path)

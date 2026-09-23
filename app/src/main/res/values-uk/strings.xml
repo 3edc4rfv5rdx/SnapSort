@@ -67,6 +67,14 @@
     <string name="sort_folder_remove">Прибрати</string>
     <string name="move_to">Перемістити до %1$s</string>
     <string name="move_failed">Не вдалося перемістити</string>
+    <string name="sort_by_year">Розкласти за роками</string>
+    <string name="years_confirm">Фото й відео з верхнього рівня цієї теки розійдуться по теках років зйомки, RAW-файли — разом зі своїми фото</string>
+    <string name="years_this_year">%1$s, лишаються на місці</string>
+    <string name="years_undated">Без дати, лишаються на місці</string>
+    <string name="years_moving">Перенесено %1$s з %2$s</string>
+    <string name="years_done">Розкладено за роками: %1$s</string>
+    <string name="years_partial">Перенесено: %1$s, не вдалося: %2$s</string>
+    <string name="years_nothing">Нічого розкладати за роками</string>
     <string name="setting_order">Порядок</string>
     <string name="order_name">За назвою</string>
     <string name="order_oldest">Спершу старі</string>

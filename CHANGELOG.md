@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- N: Photos and videos at the top of the folder can be sorted into a folder per year taken, RAW files along with their photos — from the ⋮ menu, this year and undated ones left in place
 - F: The sorting buttons down the right edge sit further apart, so a thumb moving between them does not catch the wrong one
 - F: Name, date taken with size, and folder sit in one chip of three lines under the photo, so the folder is no longer squeezed by the date
 - N: A photo can be put into a folder beside it — Best or Docs by default, up to five, each with its own name and icon, set in Settings — with one tap on a button down the right edge; undo takes it back

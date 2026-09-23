@@ -13,6 +13,9 @@ private val VIDEO_EXTENSIONS = setOf("mp4", "m4v", "3gp", "webm", "mkv", "mov")
  * By extension, which a trashed file keeps, so this holds inside the trash too. */
 fun isVideo(path: String): Boolean = File(path).extension.lowercase() in VIDEO_EXTENSIONS
 
+/** Whether [file] is a photo or video the queue takes, by extension. */
+fun isMedia(file: File): Boolean = file.extension.lowercase().let { it in IMAGE_EXTENSIONS || it in VIDEO_EXTENSIONS }
+
 /** Walks a plain folder tree looking for images and videos. Directories whose name
  * starts with a dot or a dash are skipped: the first covers the app's own trash
  * wherever a past root left it and machinery such as .thumbnails, the second the
@@ -47,7 +50,7 @@ object ImageScanner {
                 if (child.name.startsWith(".") || child.name.startsWith(SORT_DIR_PREFIX)) continue
                 val childPath = if (path.isEmpty()) child.name else "$path/${child.name}"
                 walk(child, childPath, progress, checkCancel, found)
-            } else if (child.extension.lowercase().let { it in IMAGE_EXTENSIONS || it in VIDEO_EXTENSIONS }) {
+            } else if (isMedia(child)) {
                 found += ImageEntry(child, path)
                 progress.files.incrementAndGet()
             }

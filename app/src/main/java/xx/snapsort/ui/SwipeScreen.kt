@@ -56,6 +56,8 @@ import kotlinx.coroutines.delay
 import xx.snapsort.AppSettings
 import xx.snapsort.R
 import xx.snapsort.SnapSortViewModel
+import xx.snapsort.currentYear
+import xx.snapsort.YearSortPhase
 import xx.snapsort.pathOnVolume
 import xx.snapsort.rememberDeviceRotation
 
@@ -155,6 +157,19 @@ fun SwipeScreen(
                         message = stringResource(R.string.pick_folder_hint),
                         action = { PickFolderButton { pickerOpen = true } },
                     )
+
+                    vm.yearSortPhase != null -> {
+                        // Back stops it between two files: nothing is left half moved.
+                        BackHandler(onBack = vm::cancelYearSort)
+                        val reading = vm.yearSortPhase == YearSortPhase.READING
+                        ScanningState(
+                            text = stringResource(
+                                if (reading) R.string.reading_dates else R.string.years_moving,
+                                formatCount(vm.yearSortDone),
+                                formatCount(vm.yearSortTotal),
+                            ),
+                        )
+                    }
 
                     vm.scanning -> ScanningState(
                         text = if (vm.readingDates) {
@@ -303,6 +318,16 @@ fun SwipeScreen(
                             DropdownMenuItem(
                                 text = {
                                     Text(
+                                        stringResource(R.string.sort_by_year),
+                                        style = MaterialTheme.typography.titleLarge,
+                                    )
+                                },
+                                enabled = vm.hasFolder && !vm.busy && !vm.scanning,
+                                onClick = { menuOpen = false; vm.planYearSort() },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
                                         stringResource(R.string.reset_position),
                                         style = MaterialTheme.typography.titleLarge,
                                     )
@@ -363,6 +388,27 @@ fun SwipeScreen(
                 confirmRestoreAll = false
                 vm.restoreAllFromTrash()
             },
+        )
+    }
+
+    vm.yearPlan?.let { plan ->
+        val lines = buildList {
+            add(stringResource(R.string.years_confirm) + ".")
+            plan.filesByYear.forEach { (year, count) -> add(labelValue(year.toString(), formatCount(count))) }
+            if (plan.thisYearFiles > 0) {
+                val thisYear = stringResource(R.string.years_this_year, currentYear().toString())
+                add(labelValue(thisYear, formatCount(plan.thisYearFiles)))
+            }
+            if (plan.undatedFiles > 0) {
+                add(labelValue(stringResource(R.string.years_undated), formatCount(plan.undatedFiles)))
+            }
+        }
+        ConfirmDialog(
+            title = stringResource(R.string.sort_by_year),
+            message = lines.joinToString("\n"),
+            danger = false,
+            onDismiss = vm::dismissYearPlan,
+            onConfirm = vm::sortIntoYears,
         )
     }
 

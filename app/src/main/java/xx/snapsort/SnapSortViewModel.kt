@@ -37,6 +37,9 @@ class Notice(@param:StringRes val text: Int, val detail: String? = null, val arg
 /** What a whole-trash job in flight is doing, for the progress it shows in place of the list. */
 enum class TrashJob { EMPTY, RESTORE }
 
+/** Where a sort into year folders is: reading the dates for its plan, or moving the files once it is agreed. */
+enum class YearSortPhase { READING, MOVING }
+
 /**
  * One photo taken out of the queue this session — thrown away or sorted into a
  * folder — and where it stood in [SnapSortViewModel.images] before it was
@@ -142,6 +145,20 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     var sessionTrashedBytes by mutableLongStateOf(0L)
         private set
 
+    /** A sort into year folders is in flight; [yearSortDone] of [yearSortTotal] are done so far. */
+    var yearSortPhase by mutableStateOf<YearSortPhase?>(null)
+        private set
+    var yearSortDone by mutableIntStateOf(0)
+        private set
+    var yearSortTotal by mutableIntStateOf(0)
+        private set
+
+    /** What a sort into year folders would do, waiting for OK; null when there is nothing to ask. */
+    var yearPlan by mutableStateOf<YearPlan?>(null)
+        private set
+
+    private var yearSortJob: Job? = null
+
     /** Every photo taken out of the queue this session, most recent last; only [undo] pops it. */
     private val history = ArrayDeque<Step>()
     val canUndo: Boolean get() = history.isNotEmpty()
@@ -232,7 +249,8 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         rescan(restorePosition)
     }
 
-    fun rescan(restorePosition: Boolean = false) {
+    /** Scans [root] again. [landOn] picks the photo to show after from the new queue; -1 leaves it to the rest. */
+    fun rescan(restorePosition: Boolean = false, landOn: ((List<ImageEntry>) -> Int)? = null) {
         val r = root ?: return
         scanJob?.cancel()
         scanning = true
@@ -253,7 +271,10 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                     ImageScanner.scan(r, progress) { ensureActive() }
                 }
                 images = ordered(found)
-                if (restorePosition && images.isNotEmpty() && AppSettings.rememberPosition.value) {
+                val landed = landOn?.invoke(images) ?: -1
+                if (landed in images.indices) {
+                    moveTo(landed)
+                } else if (restorePosition && images.isNotEmpty() && AppSettings.rememberPosition.value) {
                     val context = getApplication<Application>()
                     val saved = AppSettings.lastPath(context)
                     val byPath = if (saved == null) -1 else images.indexOfFirst { it.file.path == saved }
@@ -446,6 +467,136 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     private fun putBack(step: Step) {
         images = images.toMutableList().also { it.add(step.index.coerceIn(0, it.size), step.entry) }
         moveTo(step.index.coerceIn(0, images.lastIndex))
+    }
+
+    // ---------- Year folders ----------
+
+    /**
+     * Works out what a sort into year folders would do — reading every date
+     * it needs, with progress — and puts it up as [yearPlan] for an OK.
+     */
+    fun planYearSort() {
+        val r = root ?: return
+        if (busy || scanning) return
+        busy = true
+        yearSortJob = viewModelScope.launch {
+            try {
+                val groups = withContext(Dispatchers.IO) { YearSort.groups(r) }
+                val thisYear = currentYear()
+                val plan = YearSort.plan(groups, readYears(groups, thisYear), thisYear)
+                if (plan.moves.isEmpty()) notice = Notice(R.string.years_nothing) else yearPlan = plan
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notice = Notice(R.string.scan_failed, detail = e.message)
+            } finally {
+                yearSortPhase = null
+                busy = false
+            }
+        }
+    }
+
+    /** Each of [groups]' year, a few files at a time: it means opening them. */
+    private suspend fun readYears(groups: List<List<File>>, thisYear: Int): List<Int?> {
+        val done = AtomicInteger(0)
+        yearSortDone = 0
+        yearSortTotal = groups.size
+        yearSortPhase = YearSortPhase.READING
+        return coroutineScope {
+            val ticker = launch {
+                while (isActive) {
+                    yearSortDone = done.get()
+                    delay(PROGRESS_POLL_MS)
+                }
+            }
+            val years = groups.map { group ->
+                async(dateDispatcher) {
+                    YearSort.yearOf(group, thisYear, ::recordedAt).also { done.incrementAndGet() }
+                }
+            }.awaitAll()
+            ticker.cancel()
+            years
+        }
+    }
+
+    fun dismissYearPlan() {
+        yearPlan = null
+    }
+
+    /**
+     * Carries out [yearPlan], then scans again: every moved photo is under a
+     * new path. The photo on screen stays on screen if it stayed where it
+     * was; if it went into a year, the queue goes on with the first file
+     * still at the top — the year folders are done, not the next to go through.
+     */
+    fun sortIntoYears() {
+        val plan = yearPlan ?: return
+        val r = root ?: return
+        yearPlan = null
+        if (busy) return
+        busy = true
+        val onScreen = current?.file
+        yearSortJob = viewModelScope.launch {
+            val done = AtomicInteger(0)
+            var moved = 0
+            var failed = 0
+            var crashed = false
+            yearSortDone = 0
+            yearSortTotal = plan.filesByYear.values.sum()
+            yearSortPhase = YearSortPhase.MOVING
+            val ticker = launch {
+                while (isActive) {
+                    yearSortDone = done.get()
+                    delay(PROGRESS_POLL_MS)
+                }
+            }
+            try {
+                withContext(Dispatchers.IO) {
+                    for ((year, groups) in plan.moves) {
+                        for (group in groups) {
+                            ensureActive()
+                            val to = YearSort.moveGroup(group, r, year)
+                            if (to == null) {
+                                failed += group.size
+                            } else {
+                                moved += group.size
+                                // Same file, same date: no need to open it again under its new name.
+                                for ((from, now) in group.zip(to)) {
+                                    takenAtCache.remove(from.path)?.let { takenAtCache[now.path] = it }
+                                }
+                            }
+                            done.addAndGet(group.size)
+                        }
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                crashed = true
+                notice = Notice(R.string.move_failed, detail = e.message)
+            } finally {
+                ticker.cancel()
+                yearSortPhase = null
+                busy = false
+                if (!crashed) {
+                    notice = if (failed == 0) {
+                        Notice(R.string.years_done, args = listOf(formatCount(moved)))
+                    } else {
+                        Notice(R.string.years_partial, args = listOf(formatCount(moved), formatCount(failed)))
+                    }
+                }
+                rescan { queue ->
+                    queue.indexOfFirst { it.file == onScreen }.takeIf { it >= 0 }
+                        ?: queue.indexOfFirst { it.relativePath.isEmpty() }.takeIf { it >= 0 }
+                        ?: 0
+                }
+            }
+        }
+    }
+
+    /** Stops a sort into year folders between two files: what has moved stays moved, and nothing is split. */
+    fun cancelYearSort() {
+        yearSortJob?.cancel()
     }
 
     fun noticeShown() {
