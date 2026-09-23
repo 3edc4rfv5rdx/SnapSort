@@ -73,6 +73,15 @@
     <string name="years_done">Moved into year folders: %1$s</string>
     <string name="years_partial">Moved: %1$s, could not move: %2$s</string>
     <string name="years_nothing">Nothing to sort into years</string>
+    <string name="similar">Similar shots</string>
+    <string name="similar_comparing">Comparing: %1$s of %2$s</string>
+    <string name="similar_none">No similar shots found</string>
+    <string name="similar_done">All groups gone through</string>
+    <string name="similar_hint">Tick the ones to keep</string>
+    <string name="similar_keep">Keep</string>
+    <string name="similar_skip">Skip</string>
+    <string name="similar_trash_rest">To trash: %1$s</string>
+    <string name="similar_trash_all_confirm">Nothing is kept: the whole group goes to the trash</string>
     <string name="setting_order">Order</string>
     <string name="order_name">By name</string>
     <string name="order_oldest">Oldest first</string>

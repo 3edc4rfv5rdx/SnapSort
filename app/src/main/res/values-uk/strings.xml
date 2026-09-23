@@ -75,6 +75,15 @@
     <string name="years_done">Розкладено за роками: %1$s</string>
     <string name="years_partial">Перенесено: %1$s, не вдалося: %2$s</string>
     <string name="years_nothing">Нічого розкладати за роками</string>
+    <string name="similar">Схожі кадри</string>
+    <string name="similar_comparing">Порівняння: %1$s з %2$s</string>
+    <string name="similar_none">Схожих кадрів не знайдено</string>
+    <string name="similar_done">Усі групи переглянуто</string>
+    <string name="similar_hint">Позначте, що залишити</string>
+    <string name="similar_keep">Залишити</string>
+    <string name="similar_skip">Пропустити</string>
+    <string name="similar_trash_rest">До кошика: %1$s</string>
+    <string name="similar_trash_all_confirm">Нічого не позначено: уся група піде до кошика</string>
     <string name="setting_order">Порядок</string>
     <string name="order_name">За назвою</string>
     <string name="order_oldest">Спершу старі</string>

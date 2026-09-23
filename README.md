@@ -40,8 +40,15 @@ keep it.
 - **RAW pairs**: a `.dng` beside a photo of the same name is not in the queue
   itself, but goes wherever its photo goes — into the trash as one entry, into
   a sorting folder or a year — and comes back with it on undo or restore.
-- **⋮ menu**: Undo, Change folder, Trash, Disk space, Sort into years, Reset
-  position, Settings and About.
+- **⋮ menu**: Undo, Change folder, Trash, Disk space, Sort into years,
+  Similar shots, Reset position, Settings and About.
+- **Similar shots**: from the ⋮ menu, photos in the queue taken within ten
+  seconds of each other that also look alike are shown as groups, one at a
+  time. Tick the ones to keep — a tap on a shot opens it full-screen, where a
+  swipe or the arrows go through the group, each shot as zoomed in as the
+  last — and the rest go to the trash in one tap, or
+  skip the group. With none ticked the whole group goes, after a confirmation.
+  One undo takes a whole group back.
 - **Sorting folders**: buttons down the right edge put the current file into a
   folder beside it — `-Best` and `-Docs` to begin with, up to five, each with
   its own name and icon in Settings. The dash keeps them out of the queue,

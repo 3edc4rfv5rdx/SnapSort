@@ -123,6 +123,31 @@ fun SwipeScreen(
                 )
             }
 
+            vm.similarOpen -> AppScreen(
+                title = stringResource(R.string.similar),
+                onBack = vm::closeSimilar,
+                actions = {
+                    if (vm.similarGroups.isNotEmpty()) {
+                        Text(
+                            "${vm.similarIndex + 1} / ${vm.similarGroups.size}",
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                    }
+                },
+            ) {
+                SimilarScreen(
+                    phase = vm.similarPhase,
+                    done = vm.similarDone,
+                    total = vm.similarTotal,
+                    group = vm.similarGroups.getOrNull(vm.similarIndex),
+                    groupIndex = vm.similarIndex,
+                    busy = vm.busy,
+                    onSkip = vm::nextSimilarGroup,
+                    onTrashRest = vm::trashSimilarRest,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
             settingsOpen -> AppScreen(title = stringResource(R.string.settings), onBack = { settingsOpen = false }) {
                 SettingsScreen(modifier = Modifier.weight(1f))
             }
@@ -324,6 +349,13 @@ fun SwipeScreen(
                                 },
                                 enabled = vm.hasFolder && !vm.busy && !vm.scanning,
                                 onClick = { menuOpen = false; vm.planYearSort() },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.similar), style = MaterialTheme.typography.titleLarge)
+                                },
+                                enabled = vm.images.isNotEmpty() && !vm.busy && !vm.scanning,
+                                onClick = { menuOpen = false; vm.openSimilar() },
                             )
                             DropdownMenuItem(
                                 text = {

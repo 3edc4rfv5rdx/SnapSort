@@ -75,6 +75,15 @@
     <string name="years_done">Разложено по годам: %1$s</string>
     <string name="years_partial">Перенесено: %1$s, не удалось: %2$s</string>
     <string name="years_nothing">Нечего раскладывать по годам</string>
+    <string name="similar">Похожие кадры</string>
+    <string name="similar_comparing">Сравнение: %1$s из %2$s</string>
+    <string name="similar_none">Похожих кадров не найдено</string>
+    <string name="similar_done">Все группы просмотрены</string>
+    <string name="similar_hint">Отметьте, что оставить</string>
+    <string name="similar_keep">Оставить</string>
+    <string name="similar_skip">Пропустить</string>
+    <string name="similar_trash_rest">В корзину: %1$s</string>
+    <string name="similar_trash_all_confirm">Ничего не отмечено: вся группа уйдёт в корзину</string>
     <string name="setting_order">Порядок</string>
     <string name="order_name">По имени</string>
     <string name="order_oldest">Сначала старые</string>

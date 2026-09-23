@@ -75,6 +75,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -643,7 +644,9 @@ private sealed interface PhotoState {
  * is not, so a caller can page to another photo without this composable
  * knowing what "another photo" means for it — the swipe screen and (in time)
  * the trash screen both show a photo this same way, so a fix to decoding,
- * rotation or zoom only has to happen once.
+ * rotation or zoom only has to happen once. Each photo opens unzoomed unless
+ * a [zoom] is passed in: then it is the one zoom for every photo shown with
+ * it, so the next opens as close in, on the same spot, as the last was.
  */
 @Composable
 fun PhotoView(
@@ -651,6 +654,7 @@ fun PhotoView(
     rotation: Int = 0,
     onSwipeForward: () -> Unit = {},
     onSwipeBackward: () -> Unit = {},
+    zoom: PhotoZoom? = null,
     modifier: Modifier = Modifier,
 ) {
     val state = produceState<PhotoState>(initialValue = PhotoState.Loading, key1 = path) {
@@ -662,8 +666,10 @@ fun PhotoView(
         }
         value = if (bitmap != null) PhotoState.Loaded(bitmap) else PhotoState.Failed
     }
-    var scale by remember(path) { mutableFloatStateOf(1f) }
-    var offset by remember(path) { mutableStateOf(Offset.Zero) }
+    val ownZoom = remember(path) { PhotoZoom() }
+    val z = zoom ?: ownZoom
+    var scale by z::scale
+    var offset by z::offset
     // Read inside the gesture loop, which only restarts on a new path: the
     // phone can turn while one photo stays on screen.
     val currentRotation by rememberUpdatedState(rotation)
@@ -761,6 +767,16 @@ fun PhotoView(
             PlayButton(onClick = { playVideo(context, path) })
         }
     }
+}
+
+/**
+ * How far a [PhotoView] is zoomed in and where to. Its own for each photo by
+ * default; one held outside and passed to several keeps them all alike.
+ */
+@Stable
+class PhotoZoom {
+    var scale by mutableFloatStateOf(1f)
+    var offset by mutableStateOf(Offset.Zero)
 }
 
 private val PLAY_BUTTON = 80.dp
