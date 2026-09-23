@@ -64,6 +64,18 @@ class ImageScannerTest {
     }
 
     @Test
+    fun withoutSubfoldersOnlyTheFolderItselfIsScanned() {
+        val root = tmp.newFolder("pics")
+        file(root, "a.jpg")
+        file(root, "2019/b.jpg")
+        file(root, "trip/day2/c.mp4")
+
+        val found = ImageScanner.scan(root, ImageScanner.Progress(), subfolders = false) {}
+
+        assertEquals(listOf("a.jpg"), found.map { it.file.name })
+    }
+
+    @Test
     fun pathOnVolumeDropsTheVolumePrefixOnly() {
         val volume = File("/storage/emulated/0")
         assertEquals("DCIM/Camera", pathOnVolume(File("/storage/emulated/0/DCIM/Camera"), volume))

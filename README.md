@@ -14,7 +14,7 @@ keep it.
 
 ## Features
 
-- **One file at a time**: every photo and video under the picked folder, in
+- **One file at a time**: every photo and video in the picked folder, in
   order, with its name, folder, date taken, size and place in the queue on
   screen. The bin
   trashes the current one; back and forward (or a swipe) move to the previous
@@ -26,8 +26,9 @@ keep it.
 - **Folder access**: pick any folder once, in SnapSort's own folder browser —
   internal storage or an SD card. It needs "All files access" instead of the
   system picker, which would ask for permission again on every change.
-  SnapSort remembers the folder, and the file it left off on, and goes through
-  every subfolder except hidden ones and the sorting folders.
+  SnapSort remembers the folder, and the file it left off on. It goes through
+  that folder alone, or — with "Go into subfolders" in Settings — every
+  subfolder too, except hidden ones and the sorting folders.
 - **Trash**: `Documents/SnapSort/.Trash` at the root of each storage, so
   moving a file there is instant, not a copy. Each file is kept under its
   deletion time, with a record of its name and folder beside it. Open it from
@@ -50,8 +51,8 @@ keep it.
   not touched. A dialog shows the count per year first; there is no undo.
 - **Settings**: light/dark theme, accent colour, language (English, Русский,
   Українська), the sorting folders, the order the queue goes in (by name, or
-  by date taken oldest or newest first), remembering the position in a folder,
-  and an update check.
+  by date taken oldest or newest first), going into subfolders, remembering
+  the position in a folder, and an update check.
 - **Private**: no account, no ads, no analytics. The app goes online only to
   check its own GitHub release for a newer version, and its settings are left
   out of cloud backups and device transfers.

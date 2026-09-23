@@ -79,6 +79,7 @@
     <string name="order_name">За назвою</string>
     <string name="order_oldest">Спершу старі</string>
     <string name="order_newest">Спершу нові</string>
+    <string name="setting_subfolders">Заходити у вкладені теки</string>
     <string name="setting_remember_position">Запам\'ятовувати позицію в теці</string>
     <string name="reset_position">Скидання позиції</string>
     <string name="theme_system">Системна</string>

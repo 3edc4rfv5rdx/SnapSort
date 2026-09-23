@@ -35,6 +35,7 @@ object AppSettings {
     private const val KEY_LAST_PATH = "last_path"
     private const val KEY_QUEUE_ORDER = "queue_order"
     private const val KEY_SORT_FOLDERS = "sort_folders"
+    private const val KEY_SUBFOLDERS = "subfolders"
 
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
@@ -49,6 +50,10 @@ object AppSettings {
     private val _sortFolders = MutableStateFlow(DEFAULT_SORT_FOLDERS)
     val sortFolders: StateFlow<List<SortFolder>> = _sortFolders.asStateFlow()
 
+    /** Whether the queue goes into the folders under the picked one, or only through the picked one itself. */
+    private val _subfolders = MutableStateFlow(false)
+    val subfolders: StateFlow<Boolean> = _subfolders.asStateFlow()
+
     private val _rememberPosition = MutableStateFlow(true)
     val rememberPosition: StateFlow<Boolean> = _rememberPosition.asStateFlow()
 
@@ -58,6 +63,7 @@ object AppSettings {
         _accentIndex.value = prefs.getInt(KEY_ACCENT, 0).coerceIn(0, ACCENT_COUNT - 1)
         _rememberPosition.value = prefs.getBoolean(KEY_REMEMBER_POSITION, true)
         _queueOrder.value = enumOr(prefs.getString(KEY_QUEUE_ORDER, null), QueueOrder.NAME)
+        _subfolders.value = prefs.getBoolean(KEY_SUBFOLDERS, false)
         // Absent, not empty: the defaults stand until the user has had a say,
         // and someone who removes every folder keeps none.
         val stored = prefs.getString(KEY_SORT_FOLDERS, null)
@@ -93,6 +99,11 @@ object AppSettings {
         val kept = folders.take(MAX_SORT_FOLDERS)
         _sortFolders.value = kept
         prefs(context).edit { putString(KEY_SORT_FOLDERS, encodeSortFolders(kept)) }
+    }
+
+    fun setSubfolders(context: Context, enabled: Boolean) {
+        _subfolders.value = enabled
+        prefs(context).edit { putBoolean(KEY_SUBFOLDERS, enabled) }
     }
 
     fun setRememberPosition(context: Context, enabled: Boolean) {

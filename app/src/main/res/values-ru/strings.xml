@@ -79,6 +79,7 @@
     <string name="order_name">По имени</string>
     <string name="order_oldest">Сначала старые</string>
     <string name="order_newest">Сначала новые</string>
+    <string name="setting_subfolders">Заходить во вложенные папки</string>
     <string name="setting_remember_position">Запоминать позицию в папке</string>
     <string name="reset_position">Сброс позиции</string>
     <string name="theme_system">Системная</string>

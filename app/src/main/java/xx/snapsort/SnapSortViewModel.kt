@@ -170,6 +170,13 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     init {
         // Only a change: the order in force when the folder opens is applied by the scan itself.
         viewModelScope.launch { AppSettings.queueOrder.drop(1).collect { reorder() } }
+        // A different set of files: scanned again, the photo on screen kept if it is still in.
+        viewModelScope.launch {
+            AppSettings.subfolders.drop(1).collect {
+                val onScreen = current?.file
+                rescan { queue -> queue.indexOfFirst { it.file == onScreen } }
+            }
+        }
     }
 
     val current: ImageEntry? get() = images.getOrNull(index)
@@ -268,7 +275,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             }
             try {
                 val found = withContext(Dispatchers.IO) {
-                    ImageScanner.scan(r, progress) { ensureActive() }
+                    ImageScanner.scan(r, progress, AppSettings.subfolders.value) { ensureActive() }
                 }
                 images = ordered(found)
                 val landed = landOn?.invoke(images) ?: -1

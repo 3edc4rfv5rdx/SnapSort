@@ -53,7 +53,8 @@ private enum class Editing { NONE, THEME, ACCENT, LANGUAGE, ORDER, SORT_FOLDERS 
 
 /**
  * Theme, accent colour, language, the start-up update check, the queue's
- * order, and whether browse position is remembered.
+ * order, whether it goes into subfolders, and whether browse position is
+ * remembered.
  */
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
@@ -63,6 +64,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val accentIndex by AppSettings.accentIndex.collectAsState()
     val rememberPosition by AppSettings.rememberPosition.collectAsState()
     val queueOrder by AppSettings.queueOrder.collectAsState()
+    val subfolders by AppSettings.subfolders.collectAsState()
     val sortFolders by AppSettings.sortFolders.collectAsState()
 
     val systemLabel = stringResource(R.string.language_system)
@@ -136,6 +138,22 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             value = stringResource(queueOrder.labelRes()),
             onClick = { editing = Editing.ORDER },
         )
+        HorizontalDivider()
+        // The whole row is not clickable: the switch is the control.
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.setting_subfolders),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = subfolders,
+                onCheckedChange = { AppSettings.setSubfolders(context, it) },
+            )
+        }
         HorizontalDivider()
         // The whole row is not clickable: the switch is the control.
         Row(

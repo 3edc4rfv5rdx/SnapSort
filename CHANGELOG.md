@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- N: The queue goes through the picked folder alone unless "Go into subfolders" is turned on in Settings
 - N: Photos and videos at the top of the folder can be sorted into a folder per year taken, RAW files along with their photos — from the ⋮ menu, this year and undated ones left in place
 - F: The sorting buttons down the right edge sit further apart, so a thumb moving between them does not catch the wrong one
 - F: Name, date taken with size, and folder sit in one chip of three lines under the photo, so the folder is no longer squeezed by the date
