@@ -49,7 +49,7 @@ class SortFoldersTest {
         val camera = tmp.newFolder("Camera")
         val file = photo(camera, "a.jpg", "pixels")
 
-        val moved = SortMove.moveInto(file, best)
+        val moved = SortMove.moveInto(listOf(file), best)?.single()
 
         assertEquals(File(camera, "-Best/a.jpg"), moved)
         assertEquals("pixels", moved!!.readText())
@@ -62,7 +62,7 @@ class SortFoldersTest {
         photo(File(camera, "-Best").apply { mkdirs() }, "a.jpg", "first")
         val second = photo(camera, "a.jpg", "second")
 
-        val moved = SortMove.moveInto(second, best)
+        val moved = SortMove.moveInto(listOf(second), best)?.single()
 
         assertEquals(File(camera, "-Best/a (1).jpg"), moved)
         assertEquals("first", File(camera, "-Best/a.jpg").readText())
@@ -73,21 +73,49 @@ class SortFoldersTest {
     fun movingBackReturnsThePhotoAndRefusesATakenPlace() {
         val camera = tmp.newFolder("Camera")
         val file = photo(camera, "a.jpg", "pixels")
-        val moved = SortMove.moveInto(file, best)!!
+        val moved = SortMove.moveInto(listOf(file), best)!!
 
         photo(camera, "a.jpg", "new")
-        assertEquals(SortMove.BackResult.TARGET_EXISTS, SortMove.moveBack(moved, file))
-        assertEquals("pixels", moved.readText())
+        assertEquals(SortMove.BackResult.TARGET_EXISTS, SortMove.moveBack(moved, listOf(file)))
+        assertEquals("pixels", moved.single().readText())
 
         file.delete()
-        assertEquals(SortMove.BackResult.OK, SortMove.moveBack(moved, file))
+        assertEquals(SortMove.BackResult.OK, SortMove.moveBack(moved, listOf(file)))
         assertEquals("pixels", file.readText())
-        assertFalse(moved.exists())
+        assertFalse(moved.single().exists())
     }
 
     @Test
     fun aFileWithNoFolderCannotBeMoved() {
-        assertNull(SortMove.moveInto(File("a.jpg"), best))
+        assertNull(SortMove.moveInto(listOf(File("a.jpg")), best))
+    }
+
+    @Test
+    fun aRawGoesWithItsPhotoAndComesBackWithIt() {
+        val camera = tmp.newFolder("Camera")
+        val file = photo(camera, "a.jpg", "pixels")
+        val raw = photo(camera, "a.dng", "raw")
+        photo(camera, "b.dng", "other raw")
+        photo(File(camera, "-Best").apply { mkdirs() }, "a.jpg", "first")
+        val files = listOf(file) + companionsOf(file)
+        assertEquals(listOf(file, raw), files)
+
+        val moved = SortMove.moveInto(files, best)!!
+
+        assertEquals(listOf("a (1).jpg", "a (1).dng"), moved.map { it.name })
+        assertEquals("raw", moved[1].readText())
+        assertFalse(raw.exists())
+
+        assertEquals(SortMove.BackResult.OK, SortMove.moveBack(moved, files))
+        assertEquals("raw", raw.readText())
+        assertTrue(File(camera, "b.dng").exists())
+    }
+
+    @Test
+    fun aRawHasNoCompanionsOfItsOwn() {
+        val camera = tmp.newFolder("Camera")
+        photo(camera, "a.jpg")
+        assertEquals(emptyList<File>(), companionsOf(photo(camera, "a.dng")))
     }
 
     @Test

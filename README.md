@@ -37,6 +37,9 @@ keep it.
   restores it or deletes it for good. A button at the top empties the whole
   trash with a progress bar. Anything left there for 30 days is deleted on
   its own.
+- **RAW pairs**: a `.dng` beside a photo of the same name is not in the queue
+  itself, but goes wherever its photo goes — into the trash as one entry, into
+  a sorting folder or a year — and comes back with it on undo or restore.
 - **⋮ menu**: Undo, Change folder, Trash, Disk space, Sort into years, Reset
   position, Settings and About.
 - **Sorting folders**: buttons down the right edge put the current file into a

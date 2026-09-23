@@ -49,6 +49,44 @@ class TrashTest {
     }
 
     @Test
+    fun aRawGoesInWithItsPhotoAsOneEntryAndComesBackWithIt() {
+        val entry = photo("a.jpg", "pixels")
+        val raw = File(camera, "a.dng").apply { writeText("raw data") }
+        val id = trash(entry)
+
+        assertFalse(raw.exists())
+        val listed = Trash.list(root).single()
+        assertEquals(listOf("a.dng"), listed.companions.map { it.second })
+        assertEquals("pixels".length + "raw data".length.toLong(), listed.size)
+
+        assertEquals(Trash.RestoreResult.OK, Trash.restore(Trash.get(root, id)!!))
+        assertEquals("pixels", entry.file.readText())
+        assertEquals("raw data", raw.readText())
+    }
+
+    @Test
+    fun aPhotoWhoseRawsPlaceIsTakenStaysInTheTrashWithIt() {
+        val entry = photo("a.jpg")
+        val raw = File(camera, "a.dng").apply { writeText("raw") }
+        val id = trash(entry)
+        raw.writeText("new")
+
+        assertEquals(Trash.RestoreResult.TARGET_EXISTS, Trash.restore(Trash.get(root, id)!!))
+        assertFalse(entry.file.exists())
+        assertEquals(1, Trash.get(root, id)!!.companions.size)
+    }
+
+    @Test
+    fun purgeDeletesTheRawToo() {
+        val entry = photo("a.jpg")
+        File(camera, "a.dng").writeText("raw")
+        trash(entry)
+
+        assertTrue(Trash.purge(Trash.list(root).single()))
+        assertEquals(emptyList<String>(), File(root, Trash.DIR_PATH).list()!!.toList())
+    }
+
+    @Test
     fun twoPhotosOfOneNameGetTwoIds() {
         val first = trash(photo("a.jpg", "first"))
         val second = trash(photo("a.jpg", "second"))

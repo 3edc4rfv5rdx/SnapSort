@@ -58,8 +58,13 @@ private sealed interface Step {
         val size: Long,
     ) : Step
 
-    /** [movedTo] is where the file is now; [entry] still says where it came from. */
-    data class Moved(override val index: Int, override val entry: ImageEntry, val movedTo: File) : Step
+    /** [movedFrom] — the photo and its RAW — are now at [movedTo], file for file; [entry] is the photo as it was. */
+    data class Moved(
+        override val index: Int,
+        override val entry: ImageEntry,
+        val movedFrom: List<File>,
+        val movedTo: List<File>,
+    ) : Step
 }
 
 private const val PROGRESS_POLL_MS = 200L
@@ -393,8 +398,11 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         val r = volumeRoot ?: return
         val at = index
         runBusy(onFailure = Notice(R.string.delete_failed)) {
-            // Measured before the move: afterwards the file is under another name.
-            val (size, trashId) = withContext(Dispatchers.IO) { entry.file.length() to Trash.moveToTrash(entry, r) }
+            // Measured before the move: afterwards the files are under other names.
+            val (size, trashId) = withContext(Dispatchers.IO) {
+                val companions = companionsOf(entry.file)
+                (entry.file.length() + companions.sumOf { it.length() }) to Trash.moveToTrash(entry, r, companions)
+            }
             if (trashId != null) {
                 images = images.toMutableList().also { it.removeAt(at) }
                 history.addLast(Step.Trashed(at, entry, trashId, size))
@@ -407,15 +415,18 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Sorts the current photo into [folder] beside it and drops it out of the queue. */
+    /** Sorts the current photo, its RAW with it, into [folder] beside it and drops it out of the queue. */
     fun moveInto(folder: SortFolder) {
         val entry = current ?: return
         val at = index
         runBusy(onFailure = Notice(R.string.move_failed)) {
-            val movedTo = withContext(Dispatchers.IO) { SortMove.moveInto(entry.file, folder) }
+            val (files, movedTo) = withContext(Dispatchers.IO) {
+                val files = listOf(entry.file) + companionsOf(entry.file)
+                files to SortMove.moveInto(files, folder)
+            }
             if (movedTo != null) {
                 images = images.toMutableList().also { it.removeAt(at) }
-                history.addLast(Step.Moved(at, entry, movedTo))
+                history.addLast(Step.Moved(at, entry, files, movedTo))
                 moveTo(at.coerceAtMost((images.size - 1).coerceAtLeast(0)))
             } else {
                 notice = Notice(R.string.move_failed)
@@ -457,7 +468,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun undoMoved(step: Step.Moved) {
         runBusy(onFailure = Notice(R.string.move_failed)) {
-            when (withContext(Dispatchers.IO) { SortMove.moveBack(step.movedTo, step.entry.file) }) {
+            when (withContext(Dispatchers.IO) { SortMove.moveBack(step.movedTo, step.movedFrom) }) {
                 SortMove.BackResult.OK -> putBack(step)
                 SortMove.BackResult.FAILED -> {
                     history.addLast(step)

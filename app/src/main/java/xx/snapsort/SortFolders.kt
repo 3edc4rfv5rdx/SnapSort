@@ -42,30 +42,56 @@ object SortMove {
     enum class BackResult { OK, TARGET_EXISTS, FAILED }
 
     /**
-     * Moves [file] into its folder's `-<name>` subfolder, made if it is not
-     * there yet. Never over a file already there: a taken name gets " (1)",
-     * " (2)" … before its extension. Returns where it went, null on failure.
+     * Moves [files] — a photo and its [companionsOf] — into their folder's
+     * `-<name>` subfolder, as [moveAll] does. Returns where each went, in
+     * [files]' order; null on failure.
      */
-    fun moveInto(file: File, folder: SortFolder): File? {
-        val parent = file.parentFile ?: return null
-        val dir = File(parent, folder.dirName)
+    fun moveInto(files: List<File>, folder: SortFolder): List<File>? {
+        val parent = files.firstOrNull()?.parentFile ?: return null
+        return moveAll(files, File(parent, folder.dirName))
+    }
+
+    /**
+     * Moves [files] into [dir], made if it is not there yet, all under one
+     * name: a taken one gets " (1)", " (2)" … before the extension, on every
+     * file alike, so a photo and its RAW stay a pair. Never over a file
+     * already there. Should one file not go, those already moved go back.
+     * Returns where each went, in [files]' order; null on failure.
+     */
+    fun moveAll(files: List<File>, dir: File): List<File>? {
         if (!dir.isDirectory && !dir.mkdirs()) return null
-        val target = freeName(dir, file.name)
-        return target.takeIf { file.renameTo(it) }
+        var n = 0
+        var targets: List<File>
+        do {
+            val suffix = n++
+            targets = files.map { File(dir, numbered(it.name, suffix)) }
+        } while (targets.any { it.exists() })
+        return targets.takeIf { renameAll(files, targets) }
     }
 
     /** Undoes [moveInto]: [movedTo] back to [original], never over something that is there now. */
-    fun moveBack(movedTo: File, original: File): BackResult {
-        if (original.exists()) return BackResult.TARGET_EXISTS
-        return if (movedTo.renameTo(original)) BackResult.OK else BackResult.FAILED
+    fun moveBack(movedTo: List<File>, original: List<File>): BackResult {
+        if (original.any { it.exists() }) return BackResult.TARGET_EXISTS
+        return if (renameAll(movedTo, original)) BackResult.OK else BackResult.FAILED
     }
 
-    private fun freeName(dir: File, name: String): File {
-        var candidate = File(dir, name)
+    /** Each of [from] to the same place in [to], all or none: a failure puts back those already moved. */
+    internal fun renameAll(from: List<File>, to: List<File>): Boolean {
+        val done = mutableListOf<Pair<File, File>>()
+        for ((source, target) in from.zip(to)) {
+            if (!source.renameTo(target)) {
+                done.forEach { (back, now) -> now.renameTo(back) }
+                return false
+            }
+            done.add(source to target)
+        }
+        return true
+    }
+
+    private fun numbered(name: String, n: Int): String {
+        if (n == 0) return name
         val base = name.substringBeforeLast('.')
         val ext = name.substringAfterLast('.', "").let { if (it.isEmpty()) "" else ".$it" }
-        var n = 1
-        while (candidate.exists()) candidate = File(dir, "$base (${n++})$ext")
-        return candidate
+        return "$base ($n)$ext"
     }
 }

@@ -3,9 +3,6 @@ package xx.snapsort
 import java.io.File
 import java.util.Calendar
 
-/** RAW files a camera writes beside its JPEG: not in the queue, but moved with their photo. */
-private val RAW_EXTENSIONS = setOf("dng")
-
 /** No year before this one is taken as real: a camera with its clock never set writes 1970, 1980 or 2000. */
 private const val FIRST_YEAR = 1990
 
@@ -19,8 +16,6 @@ private val NAME_DATE = Regex(
     """(?<!\d)((?:19|20)\d{2})[-_.]?(?:0[1-9]|1[0-2])[-_.]?(?:0[1-9]|[12]\d|3[01])""" +
         """(?=\D|$|\d{6}(?!\d))""",
 )
-
-fun isRaw(file: File): Boolean = file.extension.lowercase() in RAW_EXTENSIONS
 
 /** The year in [name], if it carries a date. */
 internal fun yearFromName(name: String): Int? = NAME_DATE.find(name)?.groupValues?.get(1)?.toInt()
@@ -95,30 +90,6 @@ object YearSort {
      * Should one file not go, those already moved go back. Returns where each
      * file went, in [group]'s order; null on failure.
      */
-    fun moveGroup(group: List<File>, root: File, year: Int): List<File>? {
-        val dir = File(root, year.toString())
-        if (!dir.isDirectory && !dir.mkdirs()) return null
-        var n = 0
-        var targets: List<File>
-        do {
-            val suffix = n++
-            targets = group.map { File(dir, numbered(it.name, suffix)) }
-        } while (targets.any { it.exists() })
-        val moved = mutableListOf<Pair<File, File>>()
-        for ((from, to) in group.zip(targets)) {
-            if (!from.renameTo(to)) {
-                moved.forEach { (back, now) -> now.renameTo(back) }
-                return null
-            }
-            moved.add(from to to)
-        }
-        return targets
-    }
-
-    private fun numbered(name: String, n: Int): String {
-        if (n == 0) return name
-        val base = name.substringBeforeLast('.')
-        val ext = name.substringAfterLast('.', "").let { if (it.isEmpty()) "" else ".$it" }
-        return "$base ($n)$ext"
-    }
+    fun moveGroup(group: List<File>, root: File, year: Int): List<File>? =
+        SortMove.moveAll(group, File(root, year.toString()))
 }
