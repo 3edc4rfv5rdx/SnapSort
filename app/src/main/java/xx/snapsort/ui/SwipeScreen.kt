@@ -152,7 +152,7 @@ fun SwipeScreen(
                     )
 
                     !vm.hasFolder -> EmptyState(
-                        icon = Icons.Filled.FolderOpen,
+                        icon = null,
                         title = stringResource(R.string.pick_folder),
                         message = stringResource(R.string.pick_folder_hint),
                         action = { PickFolderButton { pickerOpen = true } },
@@ -184,7 +184,7 @@ fun SwipeScreen(
                     )
 
                     vm.images.isEmpty() -> EmptyState(
-                        icon = Icons.Filled.FolderOpen,
+                        icon = null,
                         title = stringResource(R.string.no_photos),
                         message = null,
                         action = { PickFolderButton { pickerOpen = true } },
@@ -465,9 +465,14 @@ private fun PickFolderButton(onClick: () -> Unit) {
     }
 }
 
+/**
+ * A screen with nothing to show yet: [icon] above the [title], [action] below.
+ * Without an icon the action takes its place on top — a folder button under a
+ * folder picture only said the same thing twice.
+ */
 @Composable
 private fun EmptyState(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: androidx.compose.ui.graphics.vector.ImageVector?,
     title: String,
     message: String?,
     action: (@Composable () -> Unit)?,
@@ -477,8 +482,13 @@ private fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(icon, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.height(16.dp))
+        if (icon != null) {
+            Icon(icon, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(16.dp))
+        } else if (action != null) {
+            action()
+            Spacer(Modifier.height(24.dp))
+        }
         Text(title, style = MaterialTheme.typography.titleMedium)
         if (message != null) {
             Spacer(Modifier.height(8.dp))
@@ -488,7 +498,7 @@ private fun EmptyState(
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
-        if (action != null) {
+        if (icon != null && action != null) {
             Spacer(Modifier.height(24.dp))
             action()
         }

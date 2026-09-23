@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- F: The "choose folder" and "no photos" screens show the folder button above their text instead of a folder picture as well
 - N: The queue goes through the picked folder alone unless "Go into subfolders" is turned on in Settings
 - N: Photos and videos at the top of the folder can be sorted into a folder per year taken, RAW files along with their photos — from the ⋮ menu, this year and undated ones left in place
 - F: The sorting buttons down the right edge sit further apart, so a thumb moving between them does not catch the wrong one
