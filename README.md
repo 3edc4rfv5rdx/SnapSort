@@ -23,6 +23,9 @@ keep it.
 - **Viewing**: pinch to zoom and drag while zoomed. A landscape photo turns
   with the phone even though the app itself stays portrait. A video shows a
   still from its middle; the play button opens it in the phone's own player.
+  The turn button at the top turns a JPEG, PNG or WebP photo a quarter
+  clockwise by its EXIF orientation alone, so nothing is lost; the gallery
+  sees the turn too.
 - **Folder access**: pick any folder once, in SnapSort's own folder browser —
   internal storage or an SD card. It needs "All files access" instead of the
   system picker, which would ask for permission again on every change.
@@ -41,7 +44,12 @@ keep it.
   itself, but goes wherever its photo goes — into the trash as one entry, into
   a sorting folder or a year — and comes back with it on undo or restore.
 - **⋮ menu**: Undo, Change folder, Trash, Disk space, Sort into years,
-  Similar shots, Reset position, Settings and About.
+  Duplicates, Similar shots, Reset position and Settings.
+- **Duplicates**: from the ⋮ menu, identical copies of a photo or video
+  anywhere on the storage the folder is on — a messenger's folder, a backup,
+  the sorting folders — found by content, not by name or date, and shown
+  group by group with each copy's folder. Nothing is ticked at first; tick
+  the copies to keep and the rest go to the trash, as with similar shots.
 - **Similar shots**: from the ⋮ menu, photos in the queue taken within ten
   seconds of each other that also look alike are shown as groups, one at a
   time. Tick the ones to keep — a tap on a shot opens it full-screen, where a
@@ -53,7 +61,8 @@ keep it.
   folder beside it — `-Best` and `-Docs` to begin with, up to five, each with
   its own name and icon in Settings. The dash keeps them out of the queue,
   whatever they are called; pick one as a folder of its own to go through what
-  landed there. Undo takes the last one back.
+  landed there. Undo takes the last one back. "Show folder buttons" in
+  Settings hides the buttons and keeps the folders.
 - **Sort into years**: from the ⋮ menu, the photos and videos at the top of
   the picked folder go into `2018`, `2019` … beside them, by the date the
   camera recorded or the one in the file name. A RAW goes with the photo of
@@ -61,8 +70,9 @@ keep it.
   not touched. A dialog shows the count per year first; there is no undo.
 - **Settings**: light/dark theme, accent colour, language (English, Русский,
   Українська), the sorting folders, the order the queue goes in (by name, or
-  by date taken oldest or newest first), going into subfolders, remembering
-  the position in a folder, and an update check.
+  by date taken oldest or newest first), going into subfolders, showing the
+  folder buttons, remembering the position in a folder, and an update check.
+  The (i) button at the top of Settings opens About.
 - **Private**: no account, no ads, no analytics. The app goes online only to
   check its own GitHub release for a newer version, and its settings are left
   out of cloud backups and device transfers.
