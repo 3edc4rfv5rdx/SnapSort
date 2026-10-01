@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.RestoreFromTrash
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -64,8 +65,8 @@ import xx.snapsort.rememberDeviceRotation
 
 /**
  * The whole app: one photo at a time, kept or trashed with a button tap, with
- * a folder to pick before any of that and a ⋮ menu for the trash, settings
- * and about.
+ * a folder to pick before any of that and a ⋮ menu for the trash and
+ * settings; about is a button on the settings screen.
  */
 @Composable
 fun SwipeScreen(
@@ -152,7 +153,15 @@ fun SwipeScreen(
                 )
             }
 
-            settingsOpen -> AppScreen(title = stringResource(R.string.settings), onBack = { settingsOpen = false }) {
+            settingsOpen -> AppScreen(
+                title = stringResource(R.string.settings),
+                onBack = { settingsOpen = false },
+                actions = {
+                    IconButton(onClick = onAbout, modifier = Modifier.size(LARGE_BUTTON)) {
+                        Icon(Icons.Outlined.Info, stringResource(R.string.about), Modifier.size(LARGE_ICON))
+                    }
+                },
+            ) {
                 SettingsScreen(modifier = Modifier.weight(1f))
             }
 
@@ -382,12 +391,6 @@ fun SwipeScreen(
                                     Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleLarge)
                                 },
                                 onClick = { menuOpen = false; settingsOpen = true },
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(stringResource(R.string.about), style = MaterialTheme.typography.titleLarge)
-                                },
-                                onClick = { menuOpen = false; onAbout() },
                             )
                         }
                     }

@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- F: About opens from an (i) button on the Settings screen instead of the ⋮ menu
 - F: The sorting-folder buttons over the photo can be hidden with a switch in Settings, the folders kept
 - F: Duplicates open with no copy ticked and the same hint as similar shots, since the guess at the original was often wrong
 - F: Duplicates come above Similar shots in the ⋮ menu
