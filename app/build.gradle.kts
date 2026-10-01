@@ -107,7 +107,19 @@ android {
     }
     lint {
         lintConfig = file("lint.xml")
+        // The lint pass every release build runs on its own (lintVitalAnalyzeRelease)
+        // took a minute beside R8 on a 4-core laptop. 05-Lint.sh runs the full lint
+        // instead; delete this line to have a fatal lint error stop the release again.
+        checkReleaseBuilds = false
     }
+}
+
+// The map that turns R8-shortened composable names in a release stack trace back
+// into readable ones costs about 20 s a build (produceReleaseComposeMapping), and the
+// app collects no crash reports to read it against. Set it back to true, or delete
+// this block, if crash traces from a release are ever to be decoded.
+composeCompiler {
+    includeComposeMappingFile.set(false)
 }
 
 // ---------- 3. APK names the scripts can read ----------

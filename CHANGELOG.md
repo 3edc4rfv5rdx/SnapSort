@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- I: A release build skips its own lint pass and the Compose stack-trace map, about half a minute faster
 - R: Two needless null checks the compiler warned about are gone
 - I: The app no longer pulls in the whole extended Material icon set — the dozen icons it uses are kept in its own source
 - I: Gradle gets 4 GB of memory instead of 2
