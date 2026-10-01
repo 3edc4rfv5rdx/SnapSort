@@ -475,6 +475,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         val entry = current ?: return
         runBusy(onFailure = Notice(R.string.rotate_failed)) {
             if (withContext(Dispatchers.IO) { rotateClockwise(entry.file) }) {
+                announceChanged(getApplication(), listOf(entry.file.path))
                 rotations++
                 onTurned(entry.file.path)
             } else {

@@ -2,6 +2,7 @@ package xx.snapsort
 
 import android.content.Context
 import android.content.Intent
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Environment
 import android.os.storage.StorageManager
@@ -17,6 +18,15 @@ fun hasAllFilesAccess(): Boolean = Environment.isExternalStorageManager()
  * system requires the user to flip it on by hand. */
 fun allFilesAccessIntent(context: Context): Intent =
     Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:${context.packageName}"))
+
+/**
+ * Tells the system's media index that [paths] changed — a file turned, moved
+ * or gone. Galleries read that index, not the files, and without this keep
+ * showing a photo as it was, or where it was, until the system scans by itself.
+ */
+fun announceChanged(context: Context, paths: List<String>) {
+    if (paths.isNotEmpty()) MediaScannerConnection.scanFile(context, paths.toTypedArray(), null, null)
+}
 
 /** A volume the folder picker can start from, named the way the system names it. */
 class StorageRoot(val dir: File, val label: String)
