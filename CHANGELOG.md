@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- E: Photos sent to the trash, sorted into folders or years, or brought back no longer leave empty tiles in the gallery or go missing from it
 - E: A turned photo shows turned in the gallery too, not only in the app
 - N: A photo can be turned a quarter clockwise with a button at the top, losslessly, in place of the disk-space button, which stays in the menu
 - F: About opens from an (i) button on the Settings screen instead of the ⋮ menu

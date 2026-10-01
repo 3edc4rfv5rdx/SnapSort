@@ -226,6 +226,10 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     val current: ImageEntry? get() = images.getOrNull(index)
+
+    /** [files] moved, gone or changed: for the galleries, which go by the system's index of them. */
+    private fun announce(files: List<File>) = announceChanged(getApplication(), files.map { it.path })
+
     val hasFolder: Boolean get() = root != null
 
     /**
@@ -454,11 +458,13 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
      */
     private suspend fun trashEntry(entry: ImageEntry, at: Int, r: File, batch: Long = 0L): Boolean {
         // Measured before the move: afterwards the files are under other names.
-        val (size, trashId) = withContext(Dispatchers.IO) {
+        val (companions, size, trashId) = withContext(Dispatchers.IO) {
             val companions = companionsOf(entry.file)
-            (entry.file.length() + companions.sumOf { it.length() }) to Trash.moveToTrash(entry, r, companions)
+            Triple(companions, entry.file.length() + companions.sumOf { it.length() }, Trash.moveToTrash(entry, r, companions))
         }
         if (trashId == null) return false
+        // Only where it was: the trash is a hidden folder, which the index leaves out.
+        announce(listOf(entry.file) + companions)
         if (at >= 0) images = images.toMutableList().also { it.removeAt(at) }
         history.addLast(Step.Trashed(at, entry, trashId, size, batch))
         sessionTrashedCount++
@@ -475,7 +481,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         val entry = current ?: return
         runBusy(onFailure = Notice(R.string.rotate_failed)) {
             if (withContext(Dispatchers.IO) { rotateClockwise(entry.file) }) {
-                announceChanged(getApplication(), listOf(entry.file.path))
+                announce(listOf(entry.file))
                 rotations++
                 onTurned(entry.file.path)
             } else {
@@ -494,6 +500,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 files to SortMove.moveInto(files, folder)
             }
             if (movedTo != null) {
+                announce(files + movedTo)
                 images = images.toMutableList().also { it.removeAt(at) }
                 history.addLast(Step.Moved(at, entry, files, movedTo))
                 moveTo(at.coerceAtMost((images.size - 1).coerceAtLeast(0)))
@@ -526,9 +533,11 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             val retry = mutableListOf<Step.Trashed>()
             for (step in steps) {
                 // Null: the item is no longer in the trash at all.
-                val result = withContext(Dispatchers.IO) { Trash.get(r, step.trashId)?.let(Trash::restore) }
+                val item = withContext(Dispatchers.IO) { Trash.get(r, step.trashId) }
+                val result = item?.let { withContext(Dispatchers.IO) { Trash.restore(it) } }
                 when (result) {
                     Trash.RestoreResult.OK -> {
+                        announce(item?.originals.orEmpty())
                         uncount(step)
                         putBack(step)
                     }
@@ -550,7 +559,10 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     private fun undoMoved(step: Step.Moved) {
         runBusy(onFailure = Notice(R.string.move_failed)) {
             when (withContext(Dispatchers.IO) { SortMove.moveBack(step.movedTo, step.movedFrom) }) {
-                SortMove.BackResult.OK -> putBack(step)
+                SortMove.BackResult.OK -> {
+                    announce(step.movedTo + step.movedFrom)
+                    putBack(step)
+                }
                 SortMove.BackResult.FAILED -> {
                     history.addLast(step)
                     notice = Notice(R.string.move_failed)
@@ -641,6 +653,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             var moved = 0
             var failed = 0
             var crashed = false
+            val changed = mutableListOf<File>()
             yearSortDone = 0
             yearSortTotal = plan.filesByYear.values.sum()
             yearSortPhase = YearSortPhase.MOVING
@@ -660,6 +673,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                                 failed += group.size
                             } else {
                                 moved += group.size
+                                changed += group + to
                                 // Same file, same date: no need to open it again under its new name.
                                 for ((from, now) in group.zip(to)) {
                                     takenAtCache.remove(from.path)?.let { takenAtCache[now.path] = it }
@@ -676,6 +690,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 notice = Notice(R.string.move_failed, detail = e.message)
             } finally {
                 ticker.cancel()
+                announce(changed)
                 yearSortPhase = null
                 busy = false
                 if (!crashed) {
@@ -918,6 +933,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 },
             )
             if (result == Trash.RestoreResult.OK) {
+                announce(entry.originals)
                 val slot = trashed.firstOrNull { it.trashId == entry.id }
                 forgetTrashedSlotOf(entry.id)
                 if (slot != null) {
@@ -969,6 +985,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         val r = volumeRoot ?: return
         runTrashJob(TrashJob.RESTORE, onFailure = Notice(R.string.restore_failed)) { progress ->
             val result = withContext(Dispatchers.IO) { Trash.restoreAll(r, progress) }
+            announce(result.restoredFiles)
             val restored = result.restoredIds.toSet()
             val onScreen = current
             val queue = images.toMutableList()

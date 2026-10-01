@@ -40,7 +40,11 @@ object Trash {
         val deletedAt: Long,
         val size: Long,
         val companions: List<Pair<File, String>> = emptyList(),
-    )
+    ) {
+        /** Where the item and its companions go back to, under their own names. */
+        val originals: List<File>
+            get() = (listOf(name) + companions.map { it.second }).map { File(originalParent, it) }
+    }
 
     enum class RestoreResult { OK, TARGET_EXISTS, FAILED }
 
@@ -127,15 +131,15 @@ object Trash {
     fun restore(entry: Entry): RestoreResult {
         if (!entry.originalParent.isDirectory && !entry.originalParent.mkdirs()) return RestoreResult.FAILED
         val items = listOf(entry.item) + entry.companions.map { it.first }
-        val targets = (listOf(entry.name) + entry.companions.map { it.second }).map { File(entry.originalParent, it) }
+        val targets = entry.originals
         if (targets.any { it.exists() }) return RestoreResult.TARGET_EXISTS
         if (!SortMove.renameAll(items, targets)) return RestoreResult.FAILED
         entry.record.delete()
         return RestoreResult.OK
     }
 
-    /** The ids [restoreAll] put back, and how many it could not. */
-    class RestoreAllResult(val restoredIds: List<String>, val notRestored: Int)
+    /** The ids [restoreAll] put back, the files now back in place, and how many it could not. */
+    class RestoreAllResult(val restoredIds: List<String>, val restoredFiles: List<File>, val notRestored: Int)
 
     /**
      * Puts everything in the trash of [root] back, one [restore] at a time: an
@@ -145,12 +149,12 @@ object Trash {
     fun restoreAll(root: File, progress: Progress): RestoreAllResult {
         val entries = list(root)
         progress.total = entries.size
-        val restored = mutableListOf<String>()
+        val restored = mutableListOf<Entry>()
         for (entry in entries) {
-            if (restore(entry) == RestoreResult.OK) restored += entry.id
+            if (restore(entry) == RestoreResult.OK) restored += entry
             progress.done.incrementAndGet()
         }
-        return RestoreAllResult(restored, entries.size - restored.size)
+        return RestoreAllResult(restored.map { it.id }, restored.flatMap { it.originals }, entries.size - restored.size)
     }
 
     /** Deletes one item for good, with its companions. False when it could not be deleted. */
