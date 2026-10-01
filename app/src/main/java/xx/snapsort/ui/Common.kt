@@ -661,17 +661,19 @@ private sealed interface PhotoState {
  * rotation or zoom only has to happen once. Each photo opens unzoomed unless
  * a [zoom] is passed in: then it is the one zoom for every photo shown with
  * it, so the next opens as close in, on the same spot, as the last was.
+ * A new [version] decodes the same path again — the file was changed in place.
  */
 @Composable
 fun PhotoView(
     path: String,
+    version: Int = 0,
     rotation: Int = 0,
     onSwipeForward: () -> Unit = {},
     onSwipeBackward: () -> Unit = {},
     zoom: PhotoZoom? = null,
     modifier: Modifier = Modifier,
 ) {
-    val state = produceState<PhotoState>(initialValue = PhotoState.Loading, key1 = path) {
+    val state = produceState<PhotoState>(initialValue = PhotoState.Loading, key1 = path, key2 = version) {
         value = PhotoState.Loading
         // No timeout: a local file either loads or fails on its own, and a
         // long video's still can take seconds without anything being wrong.
@@ -843,6 +845,11 @@ private val thumbnailDispatcher = Dispatchers.IO.limitedParallelism(3)
 
 /** Decoded thumbnails by path, bounded by bytes, so scrolling back or reopening
  * the trash shows them at once. A trash item's path is unique to its slot. */
+/** Drops [path]'s thumbnail, so the next look decodes the file as it is now. */
+fun forgetThumbnail(path: String) {
+    thumbnailCache.remove(path)
+}
+
 private val thumbnailCache = object : LruCache<String, Bitmap>((Runtime.getRuntime().maxMemory() / 16).toInt()) {
     override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
 }

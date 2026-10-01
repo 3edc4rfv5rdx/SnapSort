@@ -66,6 +66,8 @@
     <string name="sort_folder_icon">Значок</string>
     <string name="sort_folder_remove">Убрать</string>
     <string name="move_to">Переместить в %1$s</string>
+    <string name="rotate">Повернуть</string>
+    <string name="rotate_failed">Не удалось повернуть</string>
     <string name="move_failed">Не удалось переместить</string>
     <string name="sort_by_year">Разложить по годам</string>
     <string name="years_confirm">Фото и видео с верхнего уровня этой папки разойдутся по папкам годов съёмки, RAW-файлы — вместе со своими фото</string>

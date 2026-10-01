@@ -64,6 +64,8 @@
     <string name="sort_folder_icon">Icon</string>
     <string name="sort_folder_remove">Remove</string>
     <string name="move_to">Move to %1$s</string>
+    <string name="rotate">Rotate</string>
+    <string name="rotate_failed">Could not rotate</string>
     <string name="move_failed">Could not move</string>
     <string name="sort_by_year">Sort into years</string>
     <string name="years_confirm">Photos and videos at the top of this folder go into a folder per year they were taken, RAW files along with their photos</string>

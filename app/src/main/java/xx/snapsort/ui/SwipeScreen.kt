@@ -25,7 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.RestoreFromTrash
-import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Rotate90DegreesCw
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
@@ -60,6 +60,7 @@ import xx.snapsort.R
 import xx.snapsort.SnapSortViewModel
 import xx.snapsort.currentYear
 import xx.snapsort.YearSortPhase
+import xx.snapsort.canRotate
 import xx.snapsort.pathOnVolume
 import xx.snapsort.rememberDeviceRotation
 
@@ -239,6 +240,7 @@ fun SwipeScreen(
                             ) {
                                 PhotoView(
                                     path = entry.file.path,
+                                    version = vm.rotations,
                                     rotation = rotation,
                                     onSwipeForward = vm::next,
                                     onSwipeBackward = vm::previous,
@@ -292,8 +294,9 @@ fun SwipeScreen(
                     }
                 }
 
-                // The menu's most used entries as buttons of their own; the
-                // menu keeps them too. Not turned with the phone: this is a
+                // The menu's most used entries as buttons of their own, the
+                // menu keeping them too, and turning the photo, which only a
+                // button does. Not turned with the phone: this is a
                 // portrait screen, and only the photo and its controls follow.
                 Row(
                     Modifier.align(Alignment.TopEnd).windowInsetsPadding(WindowInsets.systemBars).padding(4.dp),
@@ -311,9 +314,10 @@ fun SwipeScreen(
                         onClick = { pickerOpen = true },
                     )
                     OverlayIconButton(
-                        icon = Icons.Filled.Storage,
-                        contentDescription = stringResource(R.string.disk_space),
-                        onClick = vm::openDiskSpace,
+                        icon = Icons.Filled.Rotate90DegreesCw,
+                        contentDescription = stringResource(R.string.rotate),
+                        onClick = { vm.rotate(onTurned = ::forgetThumbnail) },
+                        enabled = vm.current?.let { canRotate(it.file) } == true && !vm.busy,
                     )
                     Box {
                         MoreButton(onClick = { menuOpen = true }, overlay = true)

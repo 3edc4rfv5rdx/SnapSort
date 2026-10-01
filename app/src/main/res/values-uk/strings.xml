@@ -66,6 +66,8 @@
     <string name="sort_folder_icon">Значок</string>
     <string name="sort_folder_remove">Прибрати</string>
     <string name="move_to">Перемістити до %1$s</string>
+    <string name="rotate">Повернути</string>
+    <string name="rotate_failed">Не вдалося повернути</string>
     <string name="move_failed">Не вдалося перемістити</string>
     <string name="sort_by_year">Розкласти за роками</string>
     <string name="years_confirm">Фото й відео з верхнього рівня цієї теки розійдуться по теках років зйомки, RAW-файли — разом зі своїми фото</string>

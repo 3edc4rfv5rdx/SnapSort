@@ -201,6 +201,10 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     private var similarJob: Job? = null
 
+    /** Photos turned this session: a change tells a photo on screen to decode again, as its file did not move. */
+    var rotations by mutableIntStateOf(0)
+        private set
+
     /** Every photo taken out of the queue this session, most recent last; only [undo] pops it. */
     private val history = ArrayDeque<Step>()
     val canUndo: Boolean get() = history.isNotEmpty()
@@ -460,6 +464,23 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         sessionTrashedCount++
         sessionTrashedBytes += size
         return true
+    }
+
+    /**
+     * Turns the current photo a quarter clockwise, then hands its path to
+     * [onTurned] — for whatever kept a picture of it as it was. No undo: three
+     * more turns are one.
+     */
+    fun rotate(onTurned: (String) -> Unit) {
+        val entry = current ?: return
+        runBusy(onFailure = Notice(R.string.rotate_failed)) {
+            if (withContext(Dispatchers.IO) { rotateClockwise(entry.file) }) {
+                rotations++
+                onTurned(entry.file.path)
+            } else {
+                notice = Notice(R.string.rotate_failed)
+            }
+        }
     }
 
     /** Sorts the current photo, its RAW with it, into [folder] beside it and drops it out of the queue. */
