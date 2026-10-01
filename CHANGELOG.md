@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- E: The search for duplicates no longer freezes the screen while it reads the size of every file on the storage
 ## v0.5.75 (2026-10-01)
 - I: A release build skips its own lint pass and the Compose stack-trace map, about half a minute faster
 - R: Two needless null checks the compiler warned about are gone

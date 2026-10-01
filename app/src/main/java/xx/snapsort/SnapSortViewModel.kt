@@ -749,10 +749,14 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         if (busy || scanning) return
         searchGroups(GroupKind.DUPLICATES, none = R.string.duplicates_none) {
             similarPhase = SimilarPhase.SEARCHING
-            val files = withContext(Dispatchers.IO) {
-                ImageScanner.scan(volume, ImageScanner.Progress(), subfolders = true, sortFolders = true) { ensureActive() }
+            // The sizes too: one stat per file on the volume, far too many for the main thread.
+            val candidates = withContext(Dispatchers.IO) {
+                val files = ImageScanner.scan(volume, ImageScanner.Progress(), subfolders = true, sortFolders = true) {
+                    ensureActive()
+                }
+                Duplicates.candidates(files.map { it.file })
             }
-            val groups = Duplicates.confirm(Duplicates.candidates(files.map { it.file })) { copies, hash ->
+            val groups = Duplicates.confirm(candidates) { copies, hash ->
                 readEach(SimilarPhase.COMPARING, copies, hash)
             }
             // The queue's own entry when it has one, so a trashed copy leaves the queue too.
