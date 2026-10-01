@@ -355,17 +355,17 @@ fun SwipeScreen(
                             )
                             DropdownMenuItem(
                                 text = {
-                                    Text(stringResource(R.string.similar), style = MaterialTheme.typography.titleLarge)
-                                },
-                                enabled = vm.images.isNotEmpty() && !vm.busy && !vm.scanning,
-                                onClick = { menuOpen = false; vm.openSimilar() },
-                            )
-                            DropdownMenuItem(
-                                text = {
                                     Text(stringResource(R.string.duplicates), style = MaterialTheme.typography.titleLarge)
                                 },
                                 enabled = vm.hasFolder && !vm.busy && !vm.scanning,
                                 onClick = { menuOpen = false; vm.openDuplicates() },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.similar), style = MaterialTheme.typography.titleLarge)
+                                },
+                                enabled = vm.images.isNotEmpty() && !vm.busy && !vm.scanning,
+                                onClick = { menuOpen = false; vm.openSimilar() },
                             )
                             DropdownMenuItem(
                                 text = {
