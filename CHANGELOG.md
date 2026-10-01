@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- N: Duplicates — identical copies of a photo or video anywhere on the storage — can be gone through group by group from the ⋮ menu, the original first and ticked, each copy with its folder
 ## v0.4.61 (2026-09-23)
 - N: Similar shots — photos taken within seconds of each other that look alike — can be gone through group by group from the ⋮ menu, keeping the ticked ones and trashing the rest in one tap
 ## v0.3.55 (2026-09-23)

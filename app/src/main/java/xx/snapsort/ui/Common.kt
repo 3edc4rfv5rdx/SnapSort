@@ -564,6 +564,12 @@ private fun InfoPill(
 // has no built-in start-ellipsis this project can rely on being present.
 private const val CHAR_WIDTH_DP = 8.5f
 
+/** [path] cut from the *start* to what fits in [width] of bodyLarge, since the part nearest the file says most. */
+private fun cutFromStart(path: String, width: Dp): String {
+    val maxChars = (width.value / CHAR_WIDTH_DP).toInt().coerceAtLeast(4)
+    return if (path.length > maxChars) "…" + path.takeLast(maxChars - 1) else path
+}
+
 /** When a file was taken and how big it is, as [FilePill] shows them. */
 private class FileInfo(val takenAt: Long, val size: Long)
 
@@ -585,8 +591,8 @@ fun FilePill(name: String, path: String, filePath: String, modifier: Modifier = 
     }
     InfoPill(modifier, shape = RoundedCornerShape(16.dp), vertical = 1.dp) {
         BoxWithConstraints {
-            val maxChars = (maxWidth.value / CHAR_WIDTH_DP).toInt().coerceAtLeast(4)
-            val shownPath = if (path.length > maxChars) "…" + path.takeLast(maxChars - 1) else path
+            // Outside the Column: its scope hides BoxWithConstraints' maxWidth.
+            val shownPath = cutFromStart(path, maxWidth)
             Column {
                 PillLine(name, overflow = TextOverflow.Ellipsis)
                 // A blank line, not no line: the chip would otherwise grow by
@@ -595,6 +601,14 @@ fun FilePill(name: String, path: String, filePath: String, modifier: Modifier = 
                 PillLine(shownPath)
             }
         }
+    }
+}
+
+/** The folder a file is in, in a chip of one line cut from the start, as [FilePill] shows it. */
+@Composable
+fun FolderPill(path: String, modifier: Modifier = Modifier) {
+    InfoPill(modifier, shape = RoundedCornerShape(16.dp), vertical = 1.dp) {
+        BoxWithConstraints { PillLine(cutFromStart(path, maxWidth)) }
     }
 }
 

@@ -45,9 +45,16 @@ fun isMedia(file: File): Boolean = file.extension.lowercase().let { it in IMAGE_
 object ImageScanner {
     class Progress { val files = AtomicInteger(0) }
 
-    fun scan(root: File, progress: Progress, subfolders: Boolean = true, checkCancel: () -> Unit): List<ImageEntry> {
+    /** [sortFolders]: go into the folders photos are sorted into as well — a search for copies needs them. */
+    fun scan(
+        root: File,
+        progress: Progress,
+        subfolders: Boolean = true,
+        sortFolders: Boolean = false,
+        checkCancel: () -> Unit,
+    ): List<ImageEntry> {
         val found = mutableListOf<ImageEntry>()
-        walk(root, "", progress, subfolders, checkCancel, found)
+        walk(root, "", progress, subfolders, sortFolders, checkCancel, found)
         return found
     }
 
@@ -56,6 +63,7 @@ object ImageScanner {
         path: String,
         progress: Progress,
         subfolders: Boolean,
+        sortFolders: Boolean,
         checkCancel: () -> Unit,
         found: MutableList<ImageEntry>,
     ) {
@@ -69,9 +77,9 @@ object ImageScanner {
                 // root stayed put: pick a root one level up and the old trash
                 // became an ordinary folder, handing every discarded photo
                 // back to the queue. The name is what identifies both kinds.
-                if (child.name.startsWith(".") || child.name.startsWith(SORT_DIR_PREFIX)) continue
+                if (child.name.startsWith(".") || (!sortFolders && child.name.startsWith(SORT_DIR_PREFIX))) continue
                 val childPath = if (path.isEmpty()) child.name else "$path/${child.name}"
-                walk(child, childPath, progress, subfolders = true, checkCancel, found)
+                walk(child, childPath, progress, subfolders = true, sortFolders, checkCancel, found)
             } else if (isMedia(child)) {
                 found += ImageEntry(child, path)
                 progress.files.incrementAndGet()

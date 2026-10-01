@@ -53,18 +53,26 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import xx.snapsort.GroupKind
 import xx.snapsort.ImageEntry
 import xx.snapsort.R
 import xx.snapsort.SimilarPhase
+import xx.snapsort.pathOnVolume
 import xx.snapsort.rememberDeviceRotation
+import java.io.File
 
 /**
  * One group of similar shots at a time: a tap on a shot shows it whole, a tap
  * on its thumbs-up keeps it, and then the rest go to the trash — or the group is
  * skipped. While [phase] is set the search is still running, with progress.
+ * A group of [GroupKind.DUPLICATES] is copies of one file: the first, the one
+ * to keep, comes ticked, and each shows the folder it is in on [volumeRoot] —
+ * the only thing telling them apart.
  */
 @Composable
 fun SimilarScreen(
+    kind: GroupKind,
+    volumeRoot: File?,
     phase: SimilarPhase?,
     done: Int,
     total: Int,
@@ -84,18 +92,26 @@ fun SimilarScreen(
             CircularProgressIndicator()
             Spacer(Modifier.height(16.dp))
             Text(
-                stringResource(
-                    if (phase == SimilarPhase.COMPARING) R.string.similar_comparing else R.string.reading_dates,
-                    formatCount(done),
-                    formatCount(total),
-                ),
+                if (phase == SimilarPhase.SEARCHING) {
+                    stringResource(R.string.scanning)
+                } else {
+                    stringResource(
+                        if (phase == SimilarPhase.COMPARING) R.string.similar_comparing else R.string.reading_dates,
+                        formatCount(done),
+                        formatCount(total),
+                    )
+                },
             )
         }
         return
     }
 
-    // Keyed on the group: the next one starts with nothing kept, on the grid.
-    var kept by rememberSaveable(groupIndex) { mutableStateOf(listOf<String>()) }
+    val duplicates = kind == GroupKind.DUPLICATES
+    // Keyed on the group: the next one starts afresh, on the grid — with
+    // nothing kept, or, for copies, the original.
+    var kept by rememberSaveable(groupIndex) {
+        mutableStateOf(if (duplicates) listOf(group.first().file.path) else listOf())
+    }
     var viewing by rememberSaveable(groupIndex) { mutableIntStateOf(-1) }
     var confirmAll by rememberSaveable(groupIndex) { mutableStateOf(false) }
     val toggle = { path: String -> kept = if (path in kept) kept - path else kept + path }
@@ -163,7 +179,7 @@ fun SimilarScreen(
     val out = group.count { it.file.path !in kept }
     Column(modifier.fillMaxSize()) {
         Text(
-            text = stringResource(R.string.similar_hint),
+            text = stringResource(if (duplicates) R.string.duplicates_hint else R.string.similar_hint),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         )
@@ -184,6 +200,12 @@ fun SimilarScreen(
                         .clickable { viewing = i },
                 ) {
                     PhotoThumbnail(path = entry.file.path, modifier = Modifier.fillMaxSize())
+                    if (duplicates) {
+                        FolderPill(
+                            path = entry.file.parentFile?.let { pathOnVolume(it, volumeRoot) }.orEmpty(),
+                            modifier = Modifier.align(Alignment.BottomStart).padding(4.dp),
+                        )
+                    }
                     // A kept shot is framed in the colour its mark turns.
                     if (isKept) Box(Modifier.fillMaxSize().border(4.dp, KeptFill, shape))
                     KeepToggle(

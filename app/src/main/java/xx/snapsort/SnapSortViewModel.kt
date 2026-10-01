@@ -40,8 +40,14 @@ enum class TrashJob { EMPTY, RESTORE }
 /** Where a sort into year folders is: reading the dates for its plan, or moving the files once it is agreed. */
 enum class YearSortPhase { READING, MOVING }
 
-/** Where the search for similar shots is: reading when each was taken, or comparing those taken close together. */
-enum class SimilarPhase { READING_DATES, COMPARING }
+/**
+ * Where a search for groups is: looking for files ([GroupKind.DUPLICATES]),
+ * reading when each was taken ([GroupKind.SIMILAR]), or comparing them.
+ */
+enum class SimilarPhase { SEARCHING, READING_DATES, COMPARING }
+
+/** What the groups on the similar-shots screen are: shots that look alike, or byte-for-byte copies. */
+enum class GroupKind { SIMILAR, DUPLICATES }
 
 /**
  * One photo taken out of the queue this session — thrown away or sorted into a
@@ -57,6 +63,8 @@ private sealed interface Step {
      * [size] is what it counted for in the session's tally, to take back out
      * if it comes back. Steps sharing a [batch] other than 0 went in one tap —
      * the rest of a group of similar shots — and one undo takes them all back.
+     * An [index] of -1: the file was never in the queue — a copy found
+     * elsewhere on the volume — and comes back to its folder only.
      */
     data class Trashed(
         override val index: Int,
@@ -186,6 +194,9 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The group on screen, in [similarGroups]. */
     var similarIndex by mutableIntStateOf(0)
+        private set
+
+    var groupKind by mutableStateOf(GroupKind.SIMILAR)
         private set
 
     private var similarJob: Job? = null
@@ -433,8 +444,9 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Moves [entry], at [at] in the queue, to the trash of [r], its RAW with
-     * it, takes it out of the queue and records the step. False if it did not go.
+     * Moves [entry], at [at] in the queue or -1 when it is not in it, to the
+     * trash of [r], its RAW with it, takes it out of the queue and records
+     * the step. False if it did not go.
      */
     private suspend fun trashEntry(entry: ImageEntry, at: Int, r: File, batch: Long = 0L): Boolean {
         // Measured before the move: afterwards the files are under other names.
@@ -443,7 +455,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             (entry.file.length() + companions.sumOf { it.length() }) to Trash.moveToTrash(entry, r, companions)
         }
         if (trashId == null) return false
-        images = images.toMutableList().also { it.removeAt(at) }
+        if (at >= 0) images = images.toMutableList().also { it.removeAt(at) }
         history.addLast(Step.Trashed(at, entry, trashId, size, batch))
         sessionTrashedCount++
         sessionTrashedBytes += size
@@ -528,8 +540,9 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** [step]'s photo back into the queue at the spot it left, and on screen. */
+    /** [step]'s photo back into the queue at the spot it left, and on screen — unless it was never in it. */
     private fun putBack(step: Step) {
+        if (step.index < 0) return
         images = images.toMutableList().also { it.add(step.index.coerceIn(0, it.size), step.entry) }
         moveTo(step.index.coerceIn(0, images.lastIndex))
     }
@@ -675,22 +688,60 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
     fun openSimilar() {
         if (busy || scanning || images.isEmpty()) return
         val photos = images.filterNot { isVideo(it.file.path) }
+        searchGroups(GroupKind.SIMILAR, none = R.string.similar_none) {
+            val taken = readEach(SimilarPhase.READING_DATES, photos) { recordedAt(it.file) }
+            val dated = photos.zip(taken).mapNotNull { (entry, at) -> at?.let { entry to it } }
+            val runs = timeRuns(dated, SIMILAR_GAP_MS)
+            val candidates = runs.flatten()
+            val grids = candidates
+                .zip(readEach(SimilarPhase.COMPARING, candidates) { visualGrid(it.file) })
+                .toMap()
+            runs.flatMap { similarGroups(it, grids::get, SIMILAR_MAX_DIFFERENCE) }
+        }
+    }
+
+    /**
+     * Opens the similar-shots screen on copies: every photo and video on the
+     * volume the folder is on, not just under the folder — a copy is mostly
+     * somewhere else, a messenger's folder or a backup. Folders photos are
+     * sorted into are searched too; only hidden ones, the trash among them,
+     * stay out. Each group starts with the copy [Duplicates.keeper] picks.
+     */
+    fun openDuplicates() {
+        val volume = volumeRoot ?: return
+        if (busy || scanning) return
+        searchGroups(GroupKind.DUPLICATES, none = R.string.duplicates_none) {
+            similarPhase = SimilarPhase.SEARCHING
+            val files = withContext(Dispatchers.IO) {
+                ImageScanner.scan(volume, ImageScanner.Progress(), subfolders = true, sortFolders = true) { ensureActive() }
+            }
+            val groups = Duplicates.confirm(Duplicates.candidates(files.map { it.file })) { copies, hash ->
+                readEach(SimilarPhase.COMPARING, copies, hash)
+            }
+            // The queue's own entry when it has one, so a trashed copy leaves the queue too.
+            val queued = images.associateBy { it.file }
+            groups.map { group ->
+                val keeper = Duplicates.keeper(group)
+                (listOf(keeper) + (group.copies - keeper).sortedBy { it.file.path }).map { copy ->
+                    queued[copy.file]
+                        ?: ImageEntry(copy.file, copy.file.parentFile?.let { pathOnVolume(it, volume) }.orEmpty())
+                }
+            }
+        }
+    }
+
+    /** Opens the similar-shots screen on the groups of [kind] that [search] finds, or says [none] were found. */
+    private fun searchGroups(kind: GroupKind, @StringRes none: Int, search: suspend () -> List<List<ImageEntry>>) {
+        groupKind = kind
         similarGroups = emptyList()
         similarIndex = 0
         similarOpen = true
         similarJob = viewModelScope.launch {
             try {
-                val taken = readEach(SimilarPhase.READING_DATES, photos) { recordedAt(it.file) }
-                val dated = photos.zip(taken).mapNotNull { (entry, at) -> at?.let { entry to it } }
-                val runs = timeRuns(dated, SIMILAR_GAP_MS)
-                val candidates = runs.flatten()
-                val grids = candidates
-                    .zip(readEach(SimilarPhase.COMPARING, candidates) { visualGrid(it.file) })
-                    .toMap()
-                val groups = runs.flatMap { similarGroups(it, grids::get, SIMILAR_MAX_DIFFERENCE) }
+                val groups = search()
                 if (groups.isEmpty()) {
                     similarOpen = false
-                    notice = Notice(R.string.similar_none)
+                    notice = Notice(none)
                 } else {
                     similarGroups = groups
                 }
@@ -761,8 +812,9 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             var failed = false
             for (entry in out) {
                 // Looked up each time: every one thrown out shifts those after it.
-                val at = images.indexOf(entry)
-                if (at >= 0 && !trashEntry(entry, at, r, batch)) failed = true
+                // A copy found elsewhere on the volume is not in the queue at all.
+                val at = images.indexOfFirst { it.file == entry.file }
+                if (!trashEntry(images.getOrNull(at) ?: entry, at, r, batch)) failed = true
             }
             val stay = images.indexOf(onScreen)
             moveTo(if (stay >= 0) stay else index.coerceAtMost((images.size - 1).coerceAtLeast(0)))
@@ -848,11 +900,14 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 forgetTrashedSlotOf(entry.id)
                 if (slot != null) {
                     uncount(slot)
-                    // Spliced in ahead of the photo on screen, it would shift
-                    // that one along and show its neighbour on the way back.
-                    val onScreen = current
-                    images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
-                    moveTo(if (onScreen == null) 0 else images.indexOf(onScreen))
+                    // A copy that was never in the queue goes back to its folder only.
+                    if (slot.index >= 0) {
+                        // Spliced in ahead of the photo on screen, it would shift
+                        // that one along and show its neighbour on the way back.
+                        val onScreen = current
+                        images = images.toMutableList().also { it.add(slot.index.coerceIn(0, it.size), slot.entry) }
+                        moveTo(if (onScreen == null) 0 else images.indexOf(onScreen))
+                    }
                 }
                 reloadTrash()
             }
@@ -898,7 +953,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             for (slot in trashed.reversed()) {
                 if (slot.trashId in restored) {
                     uncount(slot)
-                    queue.add(slot.index.coerceIn(0, queue.size), slot.entry)
+                    if (slot.index >= 0) queue.add(slot.index.coerceIn(0, queue.size), slot.entry)
                 }
             }
             history.removeAll { it is Step.Trashed && it.trashId in restored }

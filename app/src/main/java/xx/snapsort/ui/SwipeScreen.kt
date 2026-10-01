@@ -54,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import xx.snapsort.AppSettings
+import xx.snapsort.GroupKind
 import xx.snapsort.R
 import xx.snapsort.SnapSortViewModel
 import xx.snapsort.currentYear
@@ -124,7 +125,7 @@ fun SwipeScreen(
             }
 
             vm.similarOpen -> AppScreen(
-                title = stringResource(R.string.similar),
+                title = stringResource(if (vm.groupKind == GroupKind.DUPLICATES) R.string.duplicates else R.string.similar),
                 onBack = vm::closeSimilar,
                 actions = {
                     if (vm.similarGroups.isNotEmpty()) {
@@ -136,6 +137,8 @@ fun SwipeScreen(
                 },
             ) {
                 SimilarScreen(
+                    kind = vm.groupKind,
+                    volumeRoot = vm.volumeRoot,
                     phase = vm.similarPhase,
                     done = vm.similarDone,
                     total = vm.similarTotal,
@@ -356,6 +359,13 @@ fun SwipeScreen(
                                 },
                                 enabled = vm.images.isNotEmpty() && !vm.busy && !vm.scanning,
                                 onClick = { menuOpen = false; vm.openSimilar() },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(R.string.duplicates), style = MaterialTheme.typography.titleLarge)
+                                },
+                                enabled = vm.hasFolder && !vm.busy && !vm.scanning,
+                                onClick = { menuOpen = false; vm.openDuplicates() },
                             )
                             DropdownMenuItem(
                                 text = {
