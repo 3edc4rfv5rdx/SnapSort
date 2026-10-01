@@ -108,6 +108,12 @@ untouched lines. Something worth doing that was not asked for is proposed in one
 sentence and waits for a yes. When the approach itself looks wrong, say so
 before writing the code, not after.
 
+**Criticism.** Substance over compliments, and criticism unsoftened. When an
+idea has a weak spot, say it plainly with the reason — "this will not work,
+because …" — and challenge the user's proposals when there is a concrete
+reason to. Do not invent objections to look critical: a sound idea gets one
+line saying so, and the work moves on.
+
 **Committing.** Only on an explicit request — "запиши", "коммит", "commit".
 A description of the workflow ("по-фично, с коммитом") is not a standing
 permission: wait for the word each time. Then:
