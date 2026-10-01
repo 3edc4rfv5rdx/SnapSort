@@ -15,7 +15,7 @@ class DuplicatesTest {
 
     private fun file(path: String, bytes: ByteArray, modified: Long = 0L): File =
         File(tmp.root, path).apply {
-            parentFile.mkdirs()
+            parentFile!!.mkdirs()
             writeBytes(bytes)
             if (modified > 0) setLastModified(modified)
         }

@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- R: Two needless null checks the compiler warned about are gone
 - I: The app no longer pulls in the whole extended Material icon set — the dozen icons it uses are kept in its own source
 - I: Gradle gets 4 GB of memory instead of 2
 - E: Photos sent to the trash, sorted into folders or years, or brought back no longer leave empty tiles in the gallery or go missing from it

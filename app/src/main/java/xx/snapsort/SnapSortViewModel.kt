@@ -537,7 +537,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 val result = item?.let { withContext(Dispatchers.IO) { Trash.restore(it) } }
                 when (result) {
                     Trash.RestoreResult.OK -> {
-                        announce(item?.originals.orEmpty())
+                        announce(item.originals)
                         uncount(step)
                         putBack(step)
                     }
