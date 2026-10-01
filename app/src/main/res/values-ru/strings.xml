@@ -86,7 +86,6 @@
     <string name="similar_trash_all_confirm">Ничего не отмечено: вся группа уйдёт в корзину</string>
     <string name="duplicates">Дубликаты</string>
     <string name="duplicates_none">Дубликатов не найдено</string>
-    <string name="duplicates_hint">Одинаковые копии, первым оригинал — отметьте, что оставить</string>
     <string name="setting_order">Порядок</string>
     <string name="order_name">По имени</string>
     <string name="order_oldest">Сначала старые</string>

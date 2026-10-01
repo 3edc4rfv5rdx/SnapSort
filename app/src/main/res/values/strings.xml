@@ -84,7 +84,6 @@
     <string name="similar_trash_all_confirm">Nothing is kept: the whole group goes to the trash</string>
     <string name="duplicates">Duplicates</string>
     <string name="duplicates_none">No duplicates found</string>
-    <string name="duplicates_hint">Identical copies, the original first — tick the ones to keep</string>
     <string name="setting_order">Order</string>
     <string name="order_name">By name</string>
     <string name="order_oldest">Oldest first</string>

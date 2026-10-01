@@ -65,9 +65,9 @@ import java.io.File
  * One group of similar shots at a time: a tap on a shot shows it whole, a tap
  * on its thumbs-up keeps it, and then the rest go to the trash — or the group is
  * skipped. While [phase] is set the search is still running, with progress.
- * A group of [GroupKind.DUPLICATES] is copies of one file: the first, the one
- * to keep, comes ticked, and each shows the folder it is in on [volumeRoot] —
- * the only thing telling them apart.
+ * A group of [GroupKind.DUPLICATES] is copies of one file, the likeliest
+ * original first, each showing the folder it is in on [volumeRoot] — the only
+ * thing telling them apart. Nothing comes ticked: the guess is often wrong.
  */
 @Composable
 fun SimilarScreen(
@@ -107,11 +107,8 @@ fun SimilarScreen(
     }
 
     val duplicates = kind == GroupKind.DUPLICATES
-    // Keyed on the group: the next one starts afresh, on the grid — with
-    // nothing kept, or, for copies, the original.
-    var kept by rememberSaveable(groupIndex) {
-        mutableStateOf(if (duplicates) listOf(group.first().file.path) else listOf())
-    }
+    // Keyed on the group: the next one starts with nothing kept, on the grid.
+    var kept by rememberSaveable(groupIndex) { mutableStateOf(listOf<String>()) }
     var viewing by rememberSaveable(groupIndex) { mutableIntStateOf(-1) }
     var confirmAll by rememberSaveable(groupIndex) { mutableStateOf(false) }
     val toggle = { path: String -> kept = if (path in kept) kept - path else kept + path }
@@ -179,7 +176,7 @@ fun SimilarScreen(
     val out = group.count { it.file.path !in kept }
     Column(modifier.fillMaxSize()) {
         Text(
-            text = stringResource(if (duplicates) R.string.duplicates_hint else R.string.similar_hint),
+            text = stringResource(R.string.similar_hint),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         )

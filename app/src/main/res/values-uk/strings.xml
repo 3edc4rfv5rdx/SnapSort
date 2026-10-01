@@ -86,7 +86,6 @@
     <string name="similar_trash_all_confirm">Нічого не позначено: уся група піде до кошика</string>
     <string name="duplicates">Дублікати</string>
     <string name="duplicates_none">Дублікатів не знайдено</string>
-    <string name="duplicates_hint">Однакові копії, першим оригінал — позначте, що залишити</string>
     <string name="setting_order">Порядок</string>
     <string name="order_name">За назвою</string>
     <string name="order_oldest">Спершу старі</string>
