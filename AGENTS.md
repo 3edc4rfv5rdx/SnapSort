@@ -122,7 +122,14 @@ permission: wait for the word each time. Then:
 - Every commit carries its `CHANGELOG.md` entry — one short sentence under
   `Unreleased`, newest on top, prefixed with the letter that fits. `N:` only
   when the app can do something it could not before: that letter moves the
-  version line at the next release build.
+  version line at the next release build. The exception is a change to files
+  that touch neither the app nor its build — `AGENTS.md`, `README.md`,
+  `.gitignore` — which goes in without an entry: the changelog becomes the
+  release notes, and a reader of those has no use for it. Build scripts and
+  Gradle files still get their `I:` line.
+- `README.md` describes what the app does now, so a commit that changes what
+  the app does or how it is used carries the README edit with it, in the same
+  commit — not a catch-up commit later.
 - Exactly the intended changes: no chmod, no side tweaks. A file mode the user
   changed is intentional — commit it as it is.
 - Version files are the user's: never edit `build_number.txt` by hand, but stage
