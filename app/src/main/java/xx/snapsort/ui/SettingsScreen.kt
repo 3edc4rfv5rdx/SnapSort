@@ -66,6 +66,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val queueOrder by AppSettings.queueOrder.collectAsState()
     val subfolders by AppSettings.subfolders.collectAsState()
     val sortFolders by AppSettings.sortFolders.collectAsState()
+    val sortButtons by AppSettings.sortButtons.collectAsState()
 
     val systemLabel = stringResource(R.string.language_system)
     val languages = remember(context, systemLabel) { supportedLanguages(context, systemLabel) }
@@ -108,23 +109,9 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             onClick = { editing = Editing.LANGUAGE },
         )
         HorizontalDivider()
-        // The whole row is not clickable: the switch is the control.
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.setting_update_check),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f),
-            )
-            Switch(
-                checked = updateCheck,
-                onCheckedChange = {
-                    updateCheck = it
-                    Updater.setEnabled(context, it)
-                },
-            )
+        SwitchRow(stringResource(R.string.setting_update_check), updateCheck) {
+            updateCheck = it
+            Updater.setEnabled(context, it)
         }
         HorizontalDivider()
         SettingRow(
@@ -133,42 +120,18 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             onClick = { editing = Editing.SORT_FOLDERS },
         )
         HorizontalDivider()
+        SwitchRow(stringResource(R.string.setting_sort_buttons), sortButtons) { AppSettings.setSortButtons(context, it) }
+        HorizontalDivider()
         SettingRow(
             label = stringResource(R.string.setting_order),
             value = stringResource(queueOrder.labelRes()),
             onClick = { editing = Editing.ORDER },
         )
         HorizontalDivider()
-        // The whole row is not clickable: the switch is the control.
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.setting_subfolders),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f),
-            )
-            Switch(
-                checked = subfolders,
-                onCheckedChange = { AppSettings.setSubfolders(context, it) },
-            )
-        }
+        SwitchRow(stringResource(R.string.setting_subfolders), subfolders) { AppSettings.setSubfolders(context, it) }
         HorizontalDivider()
-        // The whole row is not clickable: the switch is the control.
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.setting_remember_position),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f),
-            )
-            Switch(
-                checked = rememberPosition,
-                onCheckedChange = { AppSettings.setRememberPosition(context, it) },
-            )
+        SwitchRow(stringResource(R.string.setting_remember_position), rememberPosition) {
+            AppSettings.setRememberPosition(context, it)
         }
     }
 
@@ -236,6 +199,18 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         )
 
         Editing.NONE -> Unit
+    }
+}
+
+/** A setting that is on or off. The whole row is not clickable: the switch is the control. */
+@Composable
+private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

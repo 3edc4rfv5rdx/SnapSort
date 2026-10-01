@@ -36,6 +36,7 @@ object AppSettings {
     private const val KEY_QUEUE_ORDER = "queue_order"
     private const val KEY_SORT_FOLDERS = "sort_folders"
     private const val KEY_SUBFOLDERS = "subfolders"
+    private const val KEY_SORT_BUTTONS = "sort_buttons"
 
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
@@ -54,6 +55,10 @@ object AppSettings {
     private val _subfolders = MutableStateFlow(false)
     val subfolders: StateFlow<Boolean> = _subfolders.asStateFlow()
 
+    /** Whether the buttons for [sortFolders] show over the photo; the folders stay set up either way. */
+    private val _sortButtons = MutableStateFlow(true)
+    val sortButtons: StateFlow<Boolean> = _sortButtons.asStateFlow()
+
     private val _rememberPosition = MutableStateFlow(true)
     val rememberPosition: StateFlow<Boolean> = _rememberPosition.asStateFlow()
 
@@ -64,6 +69,7 @@ object AppSettings {
         _rememberPosition.value = prefs.getBoolean(KEY_REMEMBER_POSITION, true)
         _queueOrder.value = enumOr(prefs.getString(KEY_QUEUE_ORDER, null), QueueOrder.NAME)
         _subfolders.value = prefs.getBoolean(KEY_SUBFOLDERS, false)
+        _sortButtons.value = prefs.getBoolean(KEY_SORT_BUTTONS, true)
         // Absent, not empty: the defaults stand until the user has had a say,
         // and someone who removes every folder keeps none.
         val stored = prefs.getString(KEY_SORT_FOLDERS, null)
@@ -104,6 +110,11 @@ object AppSettings {
     fun setSubfolders(context: Context, enabled: Boolean) {
         _subfolders.value = enabled
         prefs(context).edit { putBoolean(KEY_SUBFOLDERS, enabled) }
+    }
+
+    fun setSortButtons(context: Context, enabled: Boolean) {
+        _sortButtons.value = enabled
+        prefs(context).edit { putBoolean(KEY_SORT_BUTTONS, enabled) }
     }
 
     fun setRememberPosition(context: Context, enabled: Boolean) {

@@ -82,6 +82,7 @@ fun SwipeScreen(
     var confirmEmptyTrash by remember { mutableStateOf(false) }
     var confirmRestoreAll by remember { mutableStateOf(false) }
     val sortFolders by AppSettings.sortFolders.collectAsState()
+    val sortButtons by AppSettings.sortButtons.collectAsState()
 
     Box(modifier.fillMaxSize()) {
         when {
@@ -241,7 +242,7 @@ fun SwipeScreen(
                                     Modifier.align(Alignment.CenterEnd).padding(end = 4.dp),
                                     verticalArrangement = Arrangement.spacedBy(SORT_BUTTON_GAP),
                                 ) {
-                                    for (folder in sortFolders) {
+                                    for (folder in if (sortButtons) sortFolders else emptyList()) {
                                         // Already in that folder: nothing to move it into.
                                         if (entry.file.parentFile?.name == folder.dirName) continue
                                         OverlayIconButton(

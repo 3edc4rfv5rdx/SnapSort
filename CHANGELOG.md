@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- F: The sorting-folder buttons over the photo can be hidden with a switch in Settings, the folders kept
 - F: Duplicates open with no copy ticked and the same hint as similar shots, since the guess at the original was often wrong
 - F: Duplicates come above Similar shots in the ⋮ menu
 - N: Duplicates — identical copies of a photo or video anywhere on the storage — can be gone through group by group from the ⋮ menu, the original first and ticked, each copy with its folder

@@ -88,6 +88,7 @@
     <string name="order_name">By name</string>
     <string name="order_oldest">Oldest first</string>
     <string name="order_newest">Newest first</string>
+    <string name="setting_sort_buttons">Show folder buttons</string>
     <string name="setting_subfolders">Go into subfolders</string>
     <string name="setting_remember_position">Remember position in folder</string>
     <string name="reset_position">Reset position</string>
