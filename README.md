@@ -71,7 +71,8 @@ keep it.
 - **Settings**: light/dark theme, accent colour, language (English, Русский,
   Українська), the sorting folders, the order the queue goes in (by name, or
   by date taken oldest or newest first), going into subfolders, showing the
-  folder buttons, remembering the position in a folder, and an update check.
+  folder buttons, remembering the position in a folder, caching photos, and
+  an update check.
   The (i) button at the top of Settings opens About.
 - **Private**: no account, no ads, no analytics. The app goes online only to
   check its own GitHub release for a newer version, and its settings are left

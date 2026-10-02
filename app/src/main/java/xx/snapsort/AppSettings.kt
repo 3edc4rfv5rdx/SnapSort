@@ -37,6 +37,7 @@ object AppSettings {
     private const val KEY_SORT_FOLDERS = "sort_folders"
     private const val KEY_SUBFOLDERS = "subfolders"
     private const val KEY_SORT_BUTTONS = "sort_buttons"
+    private const val KEY_PHOTO_CACHE = "photo_cache"
 
     private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
     val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
@@ -59,6 +60,10 @@ object AppSettings {
     private val _sortButtons = MutableStateFlow(true)
     val sortButtons: StateFlow<Boolean> = _sortButtons.asStateFlow()
 
+    /** Whether photos once decoded are kept, and the next one in the queue decoded ahead. */
+    private val _photoCache = MutableStateFlow(true)
+    val photoCache: StateFlow<Boolean> = _photoCache.asStateFlow()
+
     private val _rememberPosition = MutableStateFlow(true)
     val rememberPosition: StateFlow<Boolean> = _rememberPosition.asStateFlow()
 
@@ -70,6 +75,7 @@ object AppSettings {
         _queueOrder.value = enumOr(prefs.getString(KEY_QUEUE_ORDER, null), QueueOrder.NAME)
         _subfolders.value = prefs.getBoolean(KEY_SUBFOLDERS, false)
         _sortButtons.value = prefs.getBoolean(KEY_SORT_BUTTONS, true)
+        _photoCache.value = prefs.getBoolean(KEY_PHOTO_CACHE, true)
         // Absent, not empty: the defaults stand until the user has had a say,
         // and someone who removes every folder keeps none.
         val stored = prefs.getString(KEY_SORT_FOLDERS, null)
@@ -115,6 +121,11 @@ object AppSettings {
     fun setSortButtons(context: Context, enabled: Boolean) {
         _sortButtons.value = enabled
         prefs(context).edit { putBoolean(KEY_SORT_BUTTONS, enabled) }
+    }
+
+    fun setPhotoCache(context: Context, enabled: Boolean) {
+        _photoCache.value = enabled
+        prefs(context).edit { putBoolean(KEY_PHOTO_CACHE, enabled) }
     }
 
     fun setRememberPosition(context: Context, enabled: Boolean) {

@@ -95,6 +95,7 @@
     <string name="setting_sort_buttons">Показывать кнопки папок</string>
     <string name="setting_subfolders">Заходить во вложенные папки</string>
     <string name="setting_remember_position">Запоминать позицию в папке</string>
+    <string name="setting_photo_cache">Кешировать фото</string>
     <string name="reset_position">Сброс позиции</string>
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>

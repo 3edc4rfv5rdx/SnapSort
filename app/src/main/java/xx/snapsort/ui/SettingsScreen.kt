@@ -67,6 +67,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     val subfolders by AppSettings.subfolders.collectAsState()
     val sortFolders by AppSettings.sortFolders.collectAsState()
     val sortButtons by AppSettings.sortButtons.collectAsState()
+    val photoCache by AppSettings.photoCache.collectAsState()
 
     val systemLabel = stringResource(R.string.language_system)
     val languages = remember(context, systemLabel) { supportedLanguages(context, systemLabel) }
@@ -132,6 +133,11 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
         HorizontalDivider()
         SwitchRow(stringResource(R.string.setting_remember_position), rememberPosition) {
             AppSettings.setRememberPosition(context, it)
+        }
+        HorizontalDivider()
+        SwitchRow(stringResource(R.string.setting_photo_cache), photoCache) {
+            AppSettings.setPhotoCache(context, it)
+            if (!it) forgetPhotos()
         }
     }
 

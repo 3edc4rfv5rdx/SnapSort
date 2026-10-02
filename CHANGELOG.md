@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- F: Photos open faster: decoded to at most 2048 pixels a side, the last few kept in memory and the next one read ahead — the cache can be turned off in Settings
 - E: Leaving similar shots or duplicates while a group is being trashed no longer says all groups were gone through
 - E: A photo no longer flips back and forth between two turns while the phone is held near a diagonal
 - E: A photo marked as mirrored in its EXIF, as front cameras and some editors write it, shows the right way round instead of on its side

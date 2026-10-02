@@ -68,6 +68,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -97,13 +98,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xx.snapsort.ACCENT_COUNT
+import xx.snapsort.AppSettings
 import xx.snapsort.Notice
 import xx.snapsort.SortIcon
 import xx.snapsort.R
@@ -630,12 +636,53 @@ fun CountPill(current: Int, total: Int, modifier: Modifier = Modifier) {
 // ---------- Photo viewer ----------
 
 private const val MAX_ZOOM = 5f
+private const val PHOTO_MAX_DIMENSION = 2048
 private val SWIPE_THRESHOLD = 80.dp
 
 private sealed interface PhotoState {
     data object Loading : PhotoState
     data class Loaded(val bitmap: Bitmap) : PhotoState
     data object Failed : PhotoState
+}
+
+/** Decoded photos by path, bounded by bytes: paging back shows the last few at
+ * once, and the next one in the queue is ready before it is paged to. Only
+ * while [AppSettings.photoCache] is on. */
+private val photoCache = object : LruCache<String, Bitmap>((Runtime.getRuntime().maxMemory() / 4).toInt()) {
+    override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+}
+
+/** Decodes under way by path, so the photo paged to while it is still being
+ * read ahead waits for that decode instead of starting a second. Main thread only. */
+private val photoLoads = HashMap<String, Deferred<Bitmap?>>()
+
+/** Not tied to a screen: a photo decode cannot be stopped part-way anyway, and
+ * one read ahead is still wanted after the page that asked for it is gone. */
+private val photoScope = MainScope()
+
+/** The photo at [path] as [PhotoView] shows it, from [photoCache] or decoded once into it. */
+private fun loadPhoto(path: String): Deferred<Bitmap?> {
+    photoCache.get(path)?.let { return CompletableDeferred(it) }
+    return photoLoads.getOrPut(path) {
+        photoScope.async {
+            try {
+                withContext(Dispatchers.IO) { decodeSampled(path, PHOTO_MAX_DIMENSION, CancellationSignal(), fit = true) }
+                    ?.also { photoCache.put(path, it) }
+            } finally {
+                photoLoads.remove(path)
+            }
+        }
+    }
+}
+
+/** Drops [path]'s decoded photo, so the next look decodes the file as it is now. */
+fun forgetPhoto(path: String) {
+    photoCache.remove(path)
+}
+
+/** Drops every decoded photo, for when the cache is turned off. */
+fun forgetPhotos() {
+    photoCache.evictAll()
 }
 
 /**
@@ -653,6 +700,7 @@ private sealed interface PhotoState {
  * a [zoom] is passed in: then it is the one zoom for every photo shown with
  * it, so the next opens as close in, on the same spot, as the last was.
  * A new [version] decodes the same path again — the file was changed in place.
+ * [next], the photo likely shown after this one, is decoded ahead once this is up.
  */
 @Composable
 fun PhotoView(
@@ -662,16 +710,26 @@ fun PhotoView(
     onSwipeForward: () -> Unit = {},
     onSwipeBackward: () -> Unit = {},
     zoom: PhotoZoom? = null,
+    next: String? = null,
     modifier: Modifier = Modifier,
 ) {
+    val cache by AppSettings.photoCache.collectAsState()
     val state = produceState<PhotoState>(initialValue = PhotoState.Loading, key1 = path, key2 = version) {
         value = PhotoState.Loading
         // No timeout: a local file either loads or fails on its own, and a
         // long video's still can take seconds without anything being wrong.
-        val bitmap = withContext(Dispatchers.IO) {
-            withCancellationSignal { decodeSampled(path, 2048, it) }
+        // A video's still is not kept: it is cancelled when paged past, and
+        // a kept one would hold that up.
+        val bitmap = if (cache && !isVideo(path)) {
+            loadPhoto(path).await()
+        } else {
+            withContext(Dispatchers.IO) {
+                withCancellationSignal { decodeSampled(path, PHOTO_MAX_DIMENSION, it, fit = true) }
+            }
         }
         value = if (bitmap != null) PhotoState.Loaded(bitmap) else PhotoState.Failed
+        // Only once this one is up, so the two do not share the time it takes.
+        if (cache && next != null && !isVideo(next)) loadPhoto(next)
     }
     val ownZoom = remember(path) { PhotoZoom() }
     val z = zoom ?: ownZoom
@@ -937,13 +995,22 @@ private suspend fun <T> withCancellationSignal(block: (CancellationSignal) -> T)
     }
 }
 
-private fun decodeSampled(path: String, maxDimension: Int, signal: CancellationSignal): Bitmap? {
+/**
+ * The file at [path] decoded at a power-of-two fraction of its size: no
+ * smaller than [maxDimension] on a side, or, with [fit], no larger — a quarter
+ * of the memory for a full-screen photo, and a quarter of the time.
+ */
+private fun decodeSampled(path: String, maxDimension: Int, signal: CancellationSignal, fit: Boolean = false): Bitmap? {
     if (isVideo(path)) return videoFrame(path, maxDimension, signal)
     val bounds = decodeBounds(path)
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
     var sample = 1
-    while (bounds.outWidth / (sample * 2) >= maxDimension || bounds.outHeight / (sample * 2) >= maxDimension) {
-        sample *= 2
+    if (fit) {
+        while (bounds.outWidth / sample > maxDimension || bounds.outHeight / sample > maxDimension) sample *= 2
+    } else {
+        while (bounds.outWidth / (sample * 2) >= maxDimension || bounds.outHeight / (sample * 2) >= maxDimension) {
+            sample *= 2
+        }
     }
     val options = BitmapFactory.Options().apply { inSampleSize = sample }
     val bitmap = BitmapFactory.decodeFile(path, options) ?: return null

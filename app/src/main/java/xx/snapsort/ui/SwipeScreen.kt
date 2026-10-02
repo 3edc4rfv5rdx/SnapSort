@@ -241,6 +241,7 @@ fun SwipeScreen(
                                     rotation = rotation,
                                     onSwipeForward = vm::next,
                                     onSwipeBackward = vm::previous,
+                                    next = vm.images.getOrNull(vm.index + 1)?.file?.path,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                                 // Down the right edge, clear of the count pill
@@ -313,7 +314,7 @@ fun SwipeScreen(
                     OverlayIconButton(
                         icon = Icons.Filled.Rotate90DegreesCw,
                         contentDescription = stringResource(R.string.rotate),
-                        onClick = { vm.rotate(onTurned = ::forgetThumbnail) },
+                        onClick = { vm.rotate(onTurned = { forgetThumbnail(it); forgetPhoto(it) }) },
                         enabled = vm.current?.let { canRotate(it.file) } == true && !vm.busy,
                     )
                     Box {

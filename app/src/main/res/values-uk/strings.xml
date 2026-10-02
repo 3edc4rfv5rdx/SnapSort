@@ -95,6 +95,7 @@
     <string name="setting_sort_buttons">Показувати кнопки тек</string>
     <string name="setting_subfolders">Заходити у вкладені теки</string>
     <string name="setting_remember_position">Запам\'ятовувати позицію в теці</string>
+    <string name="setting_photo_cache">Кешувати фото</string>
     <string name="reset_position">Скидання позиції</string>
     <string name="theme_system">Системна</string>
     <string name="theme_light">Світла</string>
