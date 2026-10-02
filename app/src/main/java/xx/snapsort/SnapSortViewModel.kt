@@ -453,13 +453,13 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * Moves [entry], at [at] in the queue or -1 when it is not in it, to the
-     * trash of [r], its RAW with it, takes it out of the queue and records
-     * the step. False if it did not go.
+     * trash of [r], its RAW with it unless [withRaw] is false, takes it out of
+     * the queue and records the step. False if it did not go.
      */
-    private suspend fun trashEntry(entry: ImageEntry, at: Int, r: File, batch: Long = 0L): Boolean {
+    private suspend fun trashEntry(entry: ImageEntry, at: Int, r: File, batch: Long = 0L, withRaw: Boolean = true): Boolean {
         // Measured before the move: afterwards the files are under other names.
         val (companions, size, trashId) = withContext(Dispatchers.IO) {
-            val companions = companionsOf(entry.file)
+            val companions = if (withRaw) companionsOf(entry.file) else emptyList()
             Triple(companions, entry.file.length() + companions.sumOf { it.length() }, Trash.moveToTrash(entry, r, companions))
         }
         if (trashId == null) return false
@@ -848,6 +848,9 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         val batch = System.nanoTime()
+        // A duplicate is proven identical only as the photo itself: the RAW beside
+        // it may exist nowhere else, so it stays where it is.
+        val withRaw = groupKind != GroupKind.DUPLICATES
         runBusy(onFailure = Notice(R.string.delete_failed)) {
             val onScreen = current
             var failed = false
@@ -855,7 +858,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                 // Looked up each time: every one thrown out shifts those after it.
                 // A copy found elsewhere on the volume is not in the queue at all.
                 val at = images.indexOfFirst { it.file == entry.file }
-                if (!trashEntry(images.getOrNull(at) ?: entry, at, r, batch)) failed = true
+                if (!trashEntry(images.getOrNull(at) ?: entry, at, r, batch, withRaw)) failed = true
             }
             val stay = images.indexOf(onScreen)
             moveTo(if (stay >= 0) stay else index.coerceAtMost((images.size - 1).coerceAtLeast(0)))
