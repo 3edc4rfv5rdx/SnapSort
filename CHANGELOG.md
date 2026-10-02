@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+## v0.5.79 (2026-10-02)
 - E: Files brought back from the trash that were thrown out before the app was last opened go back into the queue too, so its count moves
 - F: Photos open faster: decoded to at most 2048 pixels a side, the last few kept in memory and the next one read ahead — the cache can be turned off in Settings
 - E: Leaving similar shots or duplicates while a group is being trashed no longer says all groups were gone through
