@@ -111,7 +111,6 @@ import xx.snapsort.ThemeMode
 import xx.snapsort.isVideo
 import xx.snapsort.takenAt
 import java.io.File
-import java.io.IOException
 import java.text.NumberFormat
 import java.util.Date
 import java.util.Locale
@@ -957,7 +956,8 @@ private fun applyExifRotation(bitmap: Bitmap, path: String): Bitmap = rotated(bi
 
 private fun readExif(path: String): ExifInterface? = try {
     ExifInterface(path)
-} catch (e: IOException) {
+} catch (e: Exception) {
+    // A malformed EXIF block throws more than IOException; the photo is shown unturned.
     null
 }
 

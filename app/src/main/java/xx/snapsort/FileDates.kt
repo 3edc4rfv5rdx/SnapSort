@@ -3,7 +3,6 @@ package xx.snapsort
 import android.media.MediaMetadataRetriever
 import androidx.exifinterface.media.ExifInterface
 import java.io.File
-import java.io.IOException
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -23,7 +22,8 @@ fun recordedAt(file: File): Long? =
 private fun exifDateText(file: File): String? = try {
     val exif = ExifInterface(file.path)
     exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL) ?: exif.getAttribute(ExifInterface.TAG_DATETIME)
-} catch (e: IOException) {
+} catch (e: Exception) {
+    // A malformed EXIF block throws more than IOException; it is a missing date, not a crash.
     null
 }
 
