@@ -892,7 +892,7 @@ private fun decodeThumbnail(path: String, signal: CancellationSignal): Bitmap? {
             val photoAspect = bounds.outWidth.toFloat() / bounds.outHeight
             val previewAspect = embedded.width.toFloat() / embedded.height
             if (abs(photoAspect - previewAspect) <= photoAspect * THUMBNAIL_ASPECT_TOLERANCE) {
-                return rotated(embedded, exifDegrees(exif))
+                return upright(embedded, exif)
             }
         }
     }
@@ -952,7 +952,7 @@ private fun decodeSampled(path: String, maxDimension: Int, signal: CancellationS
 
 /** [BitmapFactory] never applies a file's own EXIF orientation; a camera writes a
  * landscape sensor buffer plus this tag rather than rotating the pixels itself. */
-private fun applyExifRotation(bitmap: Bitmap, path: String): Bitmap = rotated(bitmap, exifDegrees(readExif(path)))
+private fun applyExifRotation(bitmap: Bitmap, path: String): Bitmap = upright(bitmap, readExif(path))
 
 private fun readExif(path: String): ExifInterface? = try {
     ExifInterface(path)
@@ -961,16 +961,16 @@ private fun readExif(path: String): ExifInterface? = try {
     null
 }
 
-private fun exifDegrees(exif: ExifInterface?): Int =
-    when (exif?.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
-        ExifInterface.ORIENTATION_ROTATE_90 -> 90
-        ExifInterface.ORIENTATION_ROTATE_180 -> 180
-        ExifInterface.ORIENTATION_ROTATE_270 -> 270
-        else -> 0
+/** [bitmap] turned, and mirrored where the tag says so, the way [exif]'s orientation asks. */
+private fun upright(bitmap: Bitmap, exif: ExifInterface?): Bitmap {
+    val degrees = exif?.rotationDegrees ?: 0
+    val flipped = exif?.isFlipped ?: false
+    if (degrees == 0 && !flipped) return bitmap
+    val matrix = Matrix().apply {
+        // Mirror first, then turn: the library pairs a mirror with the turn that
+        // follows it (transpose is 270, transverse 90), and the two do not commute.
+        if (flipped) postScale(-1f, 1f)
+        postRotate(degrees.toFloat())
     }
-
-private fun rotated(bitmap: Bitmap, degrees: Int): Bitmap {
-    if (degrees == 0) return bitmap
-    val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
     return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 }
