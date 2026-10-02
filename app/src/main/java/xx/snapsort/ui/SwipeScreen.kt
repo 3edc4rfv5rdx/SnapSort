@@ -565,14 +565,14 @@ private fun ScanningState(text: String) {
     }
 }
 
-// The buttons at the top right — trash, folder, disk space, ⋮ — at the 48dp
-// an IconButton takes, their gaps and the row's own 4dp: how far the count
-// pill at the top left has to stay clear of them.
 // Well apart, unlike the row at the top: these sit under a thumb that moves
 // down the edge between them, and a mis-tap puts a photo in the wrong folder.
 private val SORT_BUTTON_GAP = 20.dp
 
 private val TOP_BUTTON_GAP = 4.dp
+// The buttons at the top right — trash, folder, turn, ⋮ — at the 48dp
+// an IconButton takes, their gaps and the row's own 4dp: how far the count
+// pill at the top left has to stay clear of them.
 private val TOP_BUTTONS_WIDTH = 4.dp + 48.dp * 4 + TOP_BUTTON_GAP * 3
 
 private val BOTTOM_BUTTON = 64.dp
