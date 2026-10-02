@@ -840,7 +840,8 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
      * photo on the main screen stays there if it was kept.
      */
     fun trashSimilarRest(keep: Set<String>) {
-        val group = similarGroups.getOrNull(similarIndex) ?: return
+        val groups = similarGroups
+        val group = groups.getOrNull(similarIndex) ?: return
         val r = volumeRoot ?: return
         val out = group.filterNot { it.file.path in keep }
         if (out.isEmpty()) {
@@ -863,7 +864,8 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             val stay = images.indexOf(onScreen)
             moveTo(if (stay >= 0) stay else index.coerceAtMost((images.size - 1).coerceAtLeast(0)))
             if (failed) notice = Notice(R.string.delete_failed)
-            nextSimilarGroup()
+            // Not if the screen was left, or opened on another search, while this ran.
+            if (similarOpen && similarGroups === groups) nextSimilarGroup()
         }
     }
 
