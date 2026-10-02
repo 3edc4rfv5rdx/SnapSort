@@ -58,6 +58,21 @@ object ImageScanner {
         return found
     }
 
+    /**
+     * [file] as a [scan] of [root] would find it, or null when that scan would
+     * pass it by: outside [root], under a dot or a sort folder, in a subfolder
+     * without [subfolders], or no photo or video at all.
+     */
+    fun entryFor(root: File, file: File, subfolders: Boolean): ImageEntry? {
+        if (!isMedia(file)) return null
+        val parent = file.parentFile ?: return null
+        val path = parent.relativeToOrNull(root)?.invariantSeparatorsPath ?: return null
+        val parts = if (path.isEmpty()) emptyList() else path.split('/')
+        if (parts.isNotEmpty() && !subfolders) return null
+        if (parts.any { it == ".." || it.startsWith(".") || it.startsWith(SORT_DIR_PREFIX) }) return null
+        return ImageEntry(file, path)
+    }
+
     private fun walk(
         dir: File,
         path: String,

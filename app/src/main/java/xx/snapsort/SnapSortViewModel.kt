@@ -956,9 +956,27 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
                         moveTo(if (onScreen == null) 0 else images.indexOf(onScreen))
                     }
                 }
+                requeue(entry.originals)
                 reloadTrash()
             }
         }
+    }
+
+    /**
+     * Puts into the queue those of [files], just back from the trash, that a
+     * scan of the folder would find but the queue lacks: thrown out before
+     * this run of the app, so no undo step knew their place. The queue is put
+     * in order again around them; the photo on screen stays.
+     */
+    private suspend fun requeue(files: List<File>) {
+        val r = root ?: return
+        val subfolders = AppSettings.subfolders.value
+        val queued = images.mapTo(HashSet()) { it.file.path }
+        val extra = files.mapNotNull { ImageScanner.entryFor(r, it, subfolders) }.filter { it.file.path !in queued }
+        if (extra.isEmpty()) return
+        val onScreen = current
+        images = ordered(images + extra)
+        moveTo(if (onScreen == null) 0 else images.indexOf(onScreen).coerceAtLeast(0))
     }
 
     fun purgeFromTrash(entry: Trash.Entry) {
@@ -1007,6 +1025,7 @@ class SnapSortViewModel(app: Application) : AndroidViewModel(app) {
             history.removeAll { it is Step.Trashed && it.trashId in restored }
             images = queue
             if (onScreen != null) moveTo(queue.indexOf(onScreen).coerceAtLeast(0))
+            requeue(result.restoredFiles)
             notice = if (result.notRestored == 0) {
                 Notice(R.string.restored, formatCount(restored.size))
             } else {

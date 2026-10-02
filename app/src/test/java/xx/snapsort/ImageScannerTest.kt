@@ -2,6 +2,7 @@ package xx.snapsort
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -73,6 +74,19 @@ class ImageScannerTest {
         val found = ImageScanner.scan(root, ImageScanner.Progress(), subfolders = false) {}
 
         assertEquals(listOf("a.jpg"), found.map { it.file.name })
+    }
+
+    @Test
+    fun entryForTakesWhatAScanWouldFind() {
+        val root = tmp.newFolder("pics")
+        val subfolders = true
+        assertEquals("", ImageScanner.entryFor(root, File(root, "a.jpg"), subfolders)?.relativePath)
+        assertEquals("trip/day2", ImageScanner.entryFor(root, File(root, "trip/day2/c.mp4"), subfolders)?.relativePath)
+        assertNull(ImageScanner.entryFor(root, File(root, "trip/c.jpg"), subfolders = false))
+        assertNull(ImageScanner.entryFor(root, File(root, "notes.txt"), subfolders))
+        assertNull(ImageScanner.entryFor(root, File(root, ".thumbnails/t.jpg"), subfolders))
+        assertNull(ImageScanner.entryFor(root, File(root, "trip/${SORT_DIR_PREFIX}Best/b.jpg"), subfolders))
+        assertNull(ImageScanner.entryFor(root, File(root.parentFile, "elsewhere/d.jpg"), subfolders))
     }
 
     @Test
