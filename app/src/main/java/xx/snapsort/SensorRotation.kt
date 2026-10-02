@@ -8,6 +8,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import kotlin.math.abs
+
+/** How far past a quarter's edge the phone must tilt before the photo turns. */
+private const val DEAD_ZONE_DEGREES = 20
 
 /**
  * The device's physical tilt in 90-degree steps (0/90/180/270), straight off
@@ -26,6 +30,10 @@ fun rememberDeviceRotation(): Int {
         val listener = object : OrientationEventListener(context) {
             override fun onOrientationChanged(orientation: Int) {
                 if (orientation == ORIENTATION_UNKNOWN) return
+                // The tilt the current turn stands for: a photo turned 270 is a phone at 90.
+                val centre = (360 - rotation) % 360
+                val off = abs(orientation - centre).let { minOf(it, 360 - it) }
+                if (off <= 45 + DEAD_ZONE_DEGREES) return
                 rotation = when {
                     orientation >= 315 || orientation < 45 -> 0
                     orientation < 135 -> 270
