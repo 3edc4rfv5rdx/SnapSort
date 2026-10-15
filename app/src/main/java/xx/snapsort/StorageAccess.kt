@@ -3,10 +3,10 @@ package xx.snapsort
 import android.content.Context
 import android.content.Intent
 import android.media.MediaScannerConnection
-import android.net.Uri
 import android.os.Environment
 import android.os.storage.StorageManager
 import android.provider.Settings
+import androidx.core.net.toUri
 import java.io.File
 
 /** Whether this app currently holds "All files access" — every read/write in
@@ -17,7 +17,7 @@ fun hasAllFilesAccess(): Boolean = Environment.isExternalStorageManager()
  * runtime permission dialog for this one — it is sensitive enough that the
  * system requires the user to flip it on by hand. */
 fun allFilesAccessIntent(context: Context): Intent =
-    Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:${context.packageName}"))
+    Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, "package:${context.packageName}".toUri())
 
 /**
  * Tells the system's media index that [paths] changed — a file turned, moved

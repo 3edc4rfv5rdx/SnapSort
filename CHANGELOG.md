@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- R: Lint runs clean: two Compose parameter orders and a Uri parse fixed, the warnings that do not apply to this app suppressed with the reason
 - I: The About dialog and the update check are built from the shared ../about and ../updater sources instead of local stubs
 ## v0.5.79 (2026-10-02)
 - E: Files brought back from the trash that were thrown out before the app was last opened go back into the queue too, so its count moves

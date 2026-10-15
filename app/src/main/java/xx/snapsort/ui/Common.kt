@@ -235,8 +235,8 @@ fun OverlayIconButton(
     icon: ImageVector,
     contentDescription: String?,
     onClick: () -> Unit,
-    enabled: Boolean = true,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     IconButton(
         onClick = onClick,
@@ -280,7 +280,7 @@ fun InverseIconButton(
 @Composable
 fun MoreButton(onClick: () -> Unit, enabled: Boolean = true, overlay: Boolean = false) {
     if (overlay) {
-        OverlayIconButton(Icons.Filled.MoreVert, stringResource(R.string.more_options), onClick, enabled)
+        OverlayIconButton(Icons.Filled.MoreVert, stringResource(R.string.more_options), onClick, enabled = enabled)
     } else {
         IconButton(onClick = onClick, enabled = enabled) {
             Icon(Icons.Filled.MoreVert, stringResource(R.string.more_options))
@@ -705,13 +705,13 @@ fun forgetPhotos() {
 @Composable
 fun PhotoView(
     path: String,
+    modifier: Modifier = Modifier,
     version: Int = 0,
     rotation: Int = 0,
     onSwipeForward: () -> Unit = {},
     onSwipeBackward: () -> Unit = {},
     zoom: PhotoZoom? = null,
     next: String? = null,
-    modifier: Modifier = Modifier,
 ) {
     val cache by AppSettings.photoCache.collectAsState()
     val state = produceState<PhotoState>(initialValue = PhotoState.Loading, key1 = path, key2 = version) {

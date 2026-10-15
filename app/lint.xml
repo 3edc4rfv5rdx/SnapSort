@@ -15,6 +15,28 @@
         <ignore path="src/main/res/mipmap-anydpi-v26" />
     </issue>
 
+    <!-- Only APKs are built, never a bundle, so there is no split by language
+         for the in-app language switch to miss. -->
+    <issue id="AppBundleLocaleChanges" severity="ignore" />
+
+    <!-- Portrait is the app's design: the swipe screen is laid out for it. -->
+    <issue id="LockedOrientationActivity">
+        <ignore path="src/main/AndroidManifest.xml" />
+    </issue>
+    <issue id="DiscouragedApi">
+        <ignore regexp="Fixed screen orientations" />
+    </issue>
+
+    <!-- Below Android 13 there is no per-app language setting for localeConfig
+         to feed; the in-app switch covers those versions. -->
+    <issue id="UnusedAttribute">
+        <ignore regexp="localeConfig" />
+    </issue>
+
+    <!-- allowBackup is false, so there is no backup for fullBackupContent to
+         configure below Android 12. -->
+    <issue id="DataExtractionRules" severity="ignore" />
+
     <!-- Upgrading the toolchain is a decision made for all the projects at
          once, not a warning to meet in each of them. -->
     <issue id="AndroidGradlePluginVersion" severity="ignore" />
