@@ -96,8 +96,8 @@ Download the APK from the [latest release](https://github.com/3edc4rfv5rdx/SnapS
 Requires JDK 21 and the Android SDK (compileSdk 36). Release signing reads
 `~/.my-safe/key.properties`. Without it the build still works but the APK is unsigned.
 
-The in-app updater and the About dialog are compiled from the sibling folders
-`../updater` and `../about`. Clone them next to this repository.
+The in-app updater and the About dialog are compiled from
+`../shared/updater` and `../shared/about`. Clone the shared repository next to this one.
 
 ## License
 
