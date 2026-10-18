@@ -3,6 +3,7 @@
 > N=new feature, E=error fix, F=fine-tune, R=refactor, I=infrastructure
 
 ## Unreleased
+- I: Comments in the manifest and lint config point to ../shared instead of the old ../updater and ../about
 - I: The shared modules are compiled from ../shared, the one repository that holds updater, about and backups
 ## v0.5.83 (2026-10-15)
 - R: Lint runs clean: two Compose parameter orders and a Uri parse fixed, the warnings that do not apply to this app suppressed with the reason

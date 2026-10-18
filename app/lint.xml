@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <lint>
-    <!-- ../updater and ../about are compiled into every app here and answer to
-         the lowest minSdk among them; their findings belong to those modules,
-         not to this app. -->
+    <!-- ../shared/updater and ../shared/about are compiled into every app here
+         and answer to the lowest minSdk among them; their findings belong to
+         those modules, not to this app. -->
     <issue id="all">
         <ignore path="**/updater/android/**" />
         <ignore path="**/about/android/**" />

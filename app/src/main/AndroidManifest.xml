@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- The in-app updater: it fetches the release manifest and hands the
-         downloaded APK to the system installer. Compiled from ../updater. -->
+         downloaded APK to the system installer. Compiled from ../shared/updater. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
